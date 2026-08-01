@@ -209,6 +209,22 @@ func TestTokenRejectsMalformedJSON(t *testing.T) {
 	}
 }
 
+// A body past the router's cap must die with 413, not get buffered whole by
+// the JSON decoder.
+func TestOversizedBodyIs413(t *testing.T) {
+	h, _ := newServer(t)
+
+	big := `{"valor":{"original":"10.00"},"chave":"dev@example.com","solicitacaoPagador":"` +
+		strings.Repeat("a", 2<<20) + `"}`
+	rec := postJSON(t, h, "/cob", big)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+		t.Errorf("content-type = %q, want application/problem+json", ct)
+	}
+}
+
 func TestUnknownRouteIs404(t *testing.T) {
 	h, _ := newServer(t)
 

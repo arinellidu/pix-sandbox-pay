@@ -93,6 +93,12 @@ func (s *Server) Close(ctx context.Context) error { return s.webhook.Close(ctx) 
 // now returns the current instant in UTC.
 func (s *Server) now() time.Time { return s.cfg.Now().UTC() }
 
+// maxBodyBytes caps every request body before a decoder buffers it. The
+// largest legitimate API Pix body is a cob with every optional field — well
+// under a kilobyte — so a megabyte leaves room without letting one client
+// allocate the process away.
+const maxBodyBytes = 1 << 20
+
 // Router returns the fully wired HTTP handler.
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
@@ -100,6 +106,12 @@ func (s *Server) Router() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	r.Get("/health", s.handleHealth)
 	r.Post("/oauth/token", s.handleToken)
