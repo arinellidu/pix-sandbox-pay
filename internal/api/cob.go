@@ -164,6 +164,14 @@ func (s *Server) buildCharge(txid string, req cobRequest) (core.Charge, []violac
 		if err != nil {
 			violacoes = append(violacoes, violacao{Razao: err.Error(), Propriedade: "valor.original"})
 		}
+		// BACEN rejects a zero-value charge, and so does the refund schema
+		// downstream — a 0-cent payment would be impossible to devolve.
+		if err == nil && cents == 0 {
+			violacoes = append(violacoes, violacao{
+				Razao:       "valor.original must be greater than zero",
+				Propriedade: "valor.original",
+			})
+		}
 		amountCents = cents
 	}
 
