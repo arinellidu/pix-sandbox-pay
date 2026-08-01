@@ -1,8 +1,8 @@
 # pix-sandbox
 
-[![ci](https://github.com/arinelliquebec/pix-sandbox-pay/actions/workflows/ci.yml/badge.svg)](https://github.com/arinelliquebec/pix-sandbox-pay/actions/workflows/ci.yml)
+[![ci](https://github.com/arinellidu/pix-sandbox-pay/actions/workflows/ci.yml/badge.svg)](https://github.com/arinellidu/pix-sandbox-pay/actions/workflows/ci.yml)
 [![go](https://img.shields.io/badge/go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
-[![image](https://img.shields.io/badge/ghcr.io-pix--sandbox--pay-2b2b2b?logo=docker&logoColor=white)](https://github.com/arinelliquebec/pix-sandbox-pay/pkgs/container/pix-sandbox-pay)
+[![image](https://img.shields.io/badge/ghcr.io-pix--sandbox--pay-2b2b2b?logo=docker&logoColor=white)](https://github.com/arinellidu/pix-sandbox-pay/pkgs/container/pix-sandbox-pay)
 
 > A drop-in Pix emulator — the full instant-payment lifecycle (charge → EMV QR → payment → refund → webhook) in a single binary. Built for teams integrating with Brazilian PSPs, and for FedNow/SEPA teams studying the world's largest instant-payments deployment.
 
@@ -17,7 +17,7 @@ pix-sandbox is the local environment that argument deserves. It speaks BACEN's p
 ## Run it
 
 ```bash
-docker run -p 8080:8080 ghcr.io/arinelliquebec/pix-sandbox-pay
+docker run -p 8080:8080 ghcr.io/arinellidu/pix-sandbox-pay
 ```
 
 Or straight from source (Go 1.26, no CGO, no external services):
