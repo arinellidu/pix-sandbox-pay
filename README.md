@@ -7,7 +7,7 @@
 
 > A drop-in Pix emulator — the full instant-payment lifecycle (charge → EMV QR → payment → refund → webhook) in a single binary. Built for teams integrating with Brazilian PSPs, and for FedNow/SEPA teams studying the world's largest instant-payments deployment.
 
-**Status:** v0.1.0 — the loop closes. Create a charge, pay it, refund it, watch the signed callback land, and read every transition in the embedded console. The chaos API, the virtual clock and multi-PSP settlement are next; see the [roadmap](#roadmap) and [docs/DESIGN.md](docs/DESIGN.md).
+**Status:** the loop closes. Create a charge, pay it, refund it, watch the signed callback land, and read every transition in the embedded console. The chaos API, the virtual clock and multi-PSP settlement are next; see the [roadmap](#roadmap) and [docs/DESIGN.md](docs/DESIGN.md). Current build: [latest release](https://github.com/arinellidu/pix-sandbox-pay/releases/latest).
 
 ## Why this exists
 
