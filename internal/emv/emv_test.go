@@ -3,6 +3,7 @@ package emv_test
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
 )
@@ -279,6 +280,29 @@ func TestPayloadStructure(t *testing.T) {
 	// must degrade to "***" rather than emit a field readers reject.
 	if got, _ := emv.Find(sub, emv.SubTxID); got != emv.NoTxID {
 		t.Errorf("txid = %q, want %q for a %d-char txid", got, emv.NoTxID, len(txid))
+	}
+}
+
+// Truncating the description at a byte index could split a multi-byte rune;
+// the payload must stay valid UTF-8 after the cut.
+func TestPayloadDescriptionTruncatesOnRuneBoundary(t *testing.T) {
+	code := emv.BRCode{
+		Key:         "dev@example.com",
+		Description: strings.Repeat("a", 71) + "é", // byte 72 lands mid-rune
+	}
+	payload, err := code.Payload()
+	if err != nil {
+		t.Fatalf("Payload: %v", err)
+	}
+	if !utf8.ValidString(payload) {
+		t.Fatal("payload is not valid UTF-8 after truncation")
+	}
+
+	fields, _ := emv.Parse(payload)
+	account, _ := emv.Find(fields, emv.FieldMerchantAccount)
+	sub, _ := emv.Parse(account)
+	if got, _ := emv.Find(sub, emv.SubDescription); got != strings.Repeat("a", 71) {
+		t.Errorf("description = %q, want the 71 a's with the split rune dropped", got)
 	}
 }
 

@@ -12,6 +12,7 @@ package emv
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // Pix reserves this globally unique identifier for its merchant account
@@ -149,7 +150,14 @@ func (b BRCode) merchantAccount() (string, error) {
 	if b.Description != "" {
 		description := b.Description
 		if len(description) > maxDescription {
-			description = description[:maxDescription]
+			// Cut on a rune boundary: slicing mid-sequence would leave an
+			// orphaned lead byte and a payload readers reject as invalid
+			// UTF-8 — with a CRC that still verifies.
+			cut := maxDescription
+			for cut > 0 && !utf8.RuneStart(description[cut]) {
+				cut--
+			}
+			description = description[:cut]
 		}
 		subfields = append(subfields, TLV{ID: SubDescription, Value: description})
 	}
