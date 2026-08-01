@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/arinellidu/pix-sandbox-pay/internal/buildinfo"
 	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
 	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 	"github.com/arinellidu/pix-sandbox-pay/internal/store"
@@ -24,6 +25,8 @@ const DefaultBaseURL = "localhost:8080"
 
 // Config carries what the handlers need to know about the world outside them.
 type Config struct {
+	// Version is the build the API reports on /health.
+	Version string
 	// BaseURL is the scheme-less host used to build `loc.location`.
 	BaseURL string
 	// MerchantName and MerchantCity fill fields 59 and 60 of the BR Code.
@@ -41,6 +44,9 @@ type Config struct {
 }
 
 func (c Config) withDefaults() Config {
+	if c.Version == "" {
+		c.Version = buildinfo.Fallback
+	}
 	if c.BaseURL == "" {
 		c.BaseURL = DefaultBaseURL
 	}

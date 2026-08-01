@@ -42,7 +42,7 @@ go run ./cmd/pix-sandbox
 
 ```bash
 curl :8080/health
-# {"status":"ok"}
+# {"status":"ok","version":"v0.1.4"}
 
 # Where the callbacks should go. Any local echo server will do.
 curl -X PUT :8080/webhook/dev@example.com -H 'Content-Type: application/json' \
@@ -143,6 +143,7 @@ Shipped today: the API layer, the store, the webhook dispatcher and the console.
 | `-merchant-name` | `PIX_SANDBOX_MERCHANT_NAME` | `PIX SANDBOX` | BR Code field 59 |
 | `-merchant-city` | `PIX_SANDBOX_MERCHANT_CITY` | `SAO PAULO` | BR Code field 60 |
 | — | `WEBHOOK_SECRET` | `pix-sandbox` | Key the `X-Signature` HMAC is computed with |
+| `-version` | — | — | Print the build and exit |
 
 `WEBHOOK_SECRET` has no flag on purpose: a secret does not belong on a command line, where every process on the box can read it. Its default is a published constant so the loop verifies out of the box — override it when the receiver under test checks signatures against its own.
 

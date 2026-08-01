@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-08-01
+
+### Added
+- `internal/buildinfo`: a cascade that answers which build this is. The linker stamp wins when present; otherwise the module version from `debug.ReadBuildInfo()` (so `go install pkg@v0.1.3` reports `v0.1.3` instead of `dev`); otherwise the short VCS revision; otherwise `dev`. A modified working tree suffixes `+dirty`.
+- `--version` on the binary, printing the version, short revision, commit time, Go version and platform.
+- `version` in the `GET /health` payload, so a CI run can name the build that answered its tests.
+
 ## [0.1.3] — 2026-08-01
 
 ### Changed

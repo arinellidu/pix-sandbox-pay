@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/arinellidu/pix-sandbox-pay/internal/api"
+	"github.com/arinellidu/pix-sandbox-pay/internal/buildinfo"
 	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
 	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 	"github.com/arinellidu/pix-sandbox-pay/internal/store"
@@ -22,8 +24,13 @@ import (
 	"github.com/arinellidu/pix-sandbox-pay/web/console"
 )
 
-// version is injected at build time via -ldflags.
-var version = "dev"
+// version is injected at build time via -ldflags "-X main.version=$TAG".
+//
+// It stays empty by default on purpose: buildinfo treats an empty value as
+// "the linker said nothing" and falls through to what the module system and
+// the VCS stamp know. A default of "dev" here would win that cascade and
+// every `go install` build would misreport itself.
+var version string
 
 type config struct {
 	addr         string
@@ -32,6 +39,7 @@ type config struct {
 	baseURL      string
 	merchantName string
 	merchantCity string
+	showVersion  bool
 	// webhookSecret comes from the environment only: a secret never belongs
 	// on a command line, where every process on the box can read it.
 	webhookSecret string
@@ -50,6 +58,12 @@ func run() error {
 		return err
 	}
 
+	build := buildinfo.Resolve(version)
+	if cfg.showVersion {
+		fmt.Println(build)
+		return nil
+	}
+
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(log)
 
@@ -64,15 +78,16 @@ func run() error {
 	// The seed is printed on every boot: any run of the sandbox is
 	// reproducible by starting it again with the same value (ADR-007).
 	log.Info("pix-sandbox starting",
-		"version", version,
+		"version", build.Version,
 		"addr", cfg.addr,
 		"db", cfg.dbPath,
 		"seed", src.Seed(),
 	)
 
-	ui := console.New(st, console.Config{Version: version, Seed: src.Seed(), Log: log})
+	ui := console.New(st, console.Config{Version: build.Version, Seed: src.Seed(), Log: log})
 
 	apiServer := api.New(st, src, log, api.Config{
+		Version:      build.Version,
 		BaseURL:      cfg.baseURL,
 		MerchantName: cfg.merchantName,
 		MerchantCity: cfg.merchantCity,
@@ -140,6 +155,7 @@ func loadConfig() (config, error) {
 	flag.StringVar(&cfg.baseURL, "base-url", cfg.baseURL, "scheme-less host used to build charge locations")
 	flag.StringVar(&cfg.merchantName, "merchant-name", cfg.merchantName, "merchant name in the BR Code (field 59)")
 	flag.StringVar(&cfg.merchantCity, "merchant-city", cfg.merchantCity, "merchant city in the BR Code (field 60)")
+	flag.BoolVar(&cfg.showVersion, "version", false, "print the build and exit")
 	flag.Parse()
 
 	return cfg, nil

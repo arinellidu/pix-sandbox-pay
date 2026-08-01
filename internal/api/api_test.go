@@ -68,8 +68,19 @@ func TestHealth(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	if got := strings.TrimSpace(rec.Body.String()); got != `{"status":"ok"}` {
-		t.Errorf("body = %s, want {\"status\":\"ok\"}", got)
+	var body struct {
+		Status  string `json:"status"`
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Status != "ok" {
+		t.Errorf("status = %q, want ok", body.Status)
+	}
+	// A CI run has to be able to name the build that answered it.
+	if body.Version == "" {
+		t.Error("health reports no version")
 	}
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
 		t.Errorf("content-type = %q, want application/json", ct)
