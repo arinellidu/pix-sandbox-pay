@@ -4,7 +4,13 @@ VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
 IMAGE   ?= ghcr.io/arinelliquebec/pix-sandbox
 
-.PHONY: run test test-race build docker-build docker-run tidy fmt vet lint clean
+.DEFAULT_GOAL := help
+
+.PHONY: help run test test-race build docker-build docker-run tidy fmt vet lint clean
+
+## help: list the targets
+help:
+	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/^## //'
 
 ## run: start the sandbox on :8080
 run:

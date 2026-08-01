@@ -13,8 +13,10 @@ docker build -t pix-sandbox . && docker run -p 8080:8080 pix-sandbox
 Or straight from source (Go 1.26, no CGO, no external services):
 
 ```bash
-make run          # or: go run ./cmd/pix-sandbox
+go run ./cmd/pix-sandbox
 ```
+
+`make run` (Linux/macOS) and `.\run.ps1` (Windows) are wrappers over exactly that.
 
 ```bash
 curl :8080/health
@@ -45,11 +47,24 @@ The sandbox is **deterministic by default**: every generated value comes from on
 
 ## Development
 
+Plain Go commands are the source of truth; the task runners only wrap them.
+
 ```bash
-make test     # go test ./...
-make build    # static CGO-free binary in ./bin
-make lint     # fmt + vet
+go test ./...                                          # test
+go build -trimpath -o bin/pix-sandbox ./cmd/pix-sandbox # build
+go vet ./...                                           # vet
 ```
+
+| Task | Linux/macOS | Windows |
+|---|---|---|
+| Run on :8080 | `make run` | `.\run.ps1` |
+| Test | `make test` | `.\make.ps1 test` |
+| Build static binary | `make build` | `.\build.ps1` |
+| Lint (fmt + vet) | `make lint` | `.\make.ps1 lint` |
+| Build image | `make docker-build` | `.\make.ps1 docker-build` |
+| All targets | `make help` | `.\make.ps1` |
+
+`make.ps1` mirrors the Makefile target for target; `run.ps1` and `build.ps1` are shortcuts for the two you reach for most. Named flags pass straight through — `.\run.ps1 -addr :9090 -seed 42`. If PowerShell blocks the scripts, run once with `powershell -ExecutionPolicy Bypass -File .\run.ps1`.
 
 Layout: `cmd/pix-sandbox` (entrypoint) · `internal/api` (HTTP) · `internal/store` (append-only event log + projections) · `internal/rng` (seeded source).
 
