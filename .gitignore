@@ -7,3 +7,6 @@
 # Tooling scratch: browser-automation captures and one-off decision-page logs.
 /.playwright-mcp/
 /.impeccable/questions/
+
+# Scratch space for recording the demo GIF.
+/.demo/

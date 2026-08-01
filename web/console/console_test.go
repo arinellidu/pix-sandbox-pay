@@ -115,7 +115,7 @@ func TestLedgerEmptyState(t *testing.T) {
 		t.Error("empty ledger does not say it is empty")
 	}
 	// The command that ends the emptiness is the point of the state.
-	if !strings.Contains(body, "curl -X POST :8080/cob") {
+	if !strings.Contains(body, "curl -X POST localhost:8080/cob") {
 		t.Error("empty ledger does not show how to create a charge")
 	}
 }

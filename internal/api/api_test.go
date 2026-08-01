@@ -156,7 +156,7 @@ func TestTokenJSONBodyAndCustomScope(t *testing.T) {
 	}
 }
 
-// `curl -X POST :8080/oauth/token` with no body must still work: the demo loop
+// `curl -X POST localhost:8080/oauth/token` with no body must still work: the demo loop
 // should not require the caller to spell out the only grant there is.
 func TestTokenEmptyBody(t *testing.T) {
 	h, _ := newServer(t)

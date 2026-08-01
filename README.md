@@ -9,6 +9,8 @@
 
 **Status:** the loop closes. Create a charge, pay it, refund it, watch the signed callback land, and read every transition in the embedded console. The chaos API, the virtual clock and multi-PSP settlement are next; see the [roadmap](#roadmap) and [docs/DESIGN.md](docs/DESIGN.md). Current build: [latest release](https://github.com/arinellidu/pix-sandbox-pay/releases/latest).
 
+![The 60-second loop: charge, pay, signed callback, refund](docs/demo.gif)
+
 ## Why this exists
 
 Pix moved a country onto instant payments in four years, and every team that integrates with it hits the same wall: there is no realistic place to build against it. PSP sandboxes need onboarding, credentials and network access; none of them let you force a rejection, drop a webhook, or fast-forward an expiry. So integrations get tested against hand-rolled mocks that agree with whatever the developer assumed, and the assumptions surface in production — a `txid` replayed, a callback retried, a refund that exceeds what settled.
@@ -41,23 +43,23 @@ go run ./cmd/pix-sandbox
 ## The 60-second loop
 
 ```bash
-curl :8080/health
+curl localhost:8080/health
 # {"status":"ok","version":"v0.1.4"}
 
 # Where the callbacks should go. Any local echo server will do.
-curl -X PUT :8080/webhook/dev@example.com -H 'Content-Type: application/json' \
+curl -X PUT localhost:8080/webhook/dev@example.com -H 'Content-Type: application/json' \
      -d '{"webhookUrl":"http://127.0.0.1:9099/pix"}'
 
-curl -X POST :8080/cob -H 'Content-Type: application/json' \
+curl -X POST localhost:8080/cob -H 'Content-Type: application/json' \
      -d '{"valor":{"original":"10.00"},"chave":"dev@example.com"}'
 # 201 → the charge, with txid, status ATIVA and a payable pixCopiaECola
 
-curl -X POST :8080/sandbox/pay -H 'Content-Type: application/json' \
+curl -X POST localhost:8080/sandbox/pay -H 'Content-Type: application/json' \
      -d '{"txid":"<txid>","infoPagador":"Coffee"}'
 # 201 → the pix, with an e2eId — and a signed POST lands on your endpoint:
 #       {"pix":[{"endToEndId":"E12345678...","txid":"...","valor":"10.00", ...}]}
 
-curl -X PUT :8080/pix/<e2eId>/devolucao/dev1 -H 'Content-Type: application/json' \
+curl -X PUT localhost:8080/pix/<e2eId>/devolucao/dev1 -H 'Content-Type: application/json' \
      -d '{"valor":"10.00"}'
 # 201 → the devolução, DEVOLVIDO, and a second callback carrying it
 ```
@@ -190,14 +192,21 @@ Schema changes are numbered files under `internal/store/migrations/`, applied on
 
 ### Recording the demo GIF
 
-The README's loop is meant to be watched. [vhs](https://github.com/charmbracelet/vhs) records it reproducibly from a script, which beats a screen capture that has to be redone whenever a response changes:
+The README's loop is meant to be watched. [vhs](https://github.com/charmbracelet/vhs) records it from a script, which beats a screen capture that has to be redone whenever a response changes. The tape starts the emulator and a webhook receiver itself, so the recording needs nothing set up around it:
 
 ```bash
-go install github.com/charmbracelet/vhs@latest   # needs ttyd and ffmpeg on PATH
-vhs docs/demo.tape                               # writes docs/demo.gif
+docker build -f docs/demo.Dockerfile -t pix-sandbox-vhs .
+
+# Record the released binary, not a local build — the GIF should show what
+# people actually download.
+mkdir -p .demo && curl -sL   https://github.com/arinellidu/pix-sandbox-pay/releases/latest/download/pix-sandbox_v0.1.6_linux_amd64.tar.gz   | tar -xz -C .demo pix-sandbox
+
+docker run --rm -v "$PWD:/vhs" -w /vhs pix-sandbox-vhs docs/demo.tape   # writes docs/demo.gif
 ```
 
-Keep the tape honest: start a real binary with a fresh `-db`, run the same curls as above, and end on the console. A recording that fakes output is a recording that will disagree with the software.
+Every command in the tape is real. A recording that fakes output is a recording that will disagree with the software.
+
+`docs/demo-webhook.py` is the receiver the tape uses — standard library only, prints each callback and whether its signature verified. It is worth pointing the sandbox at while you build, too.
 
 ## License
 

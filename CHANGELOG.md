@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Fixed
+- **Every documented `curl` command was unrunnable.** The README, the design document and the console's empty state all used the `curl :8080/path` shorthand, which no curl accepts — 8.14 and 8.21 both answer `URL rejected: No host part in the URL`. The first command a visitor types now works. Found while recording the demo, because the tape ran the documented commands for real.
+
+### Added
+- `docs/demo.gif`, recorded from the published v0.1.6 binary, and a self-contained `docs/demo.tape` that starts the emulator and a webhook receiver itself.
+- `docs/demo-webhook.py`: a webhook receiver in the standard library that prints each callback and whether its signature verified. Useful well beyond the recording.
+- `docs/demo.Dockerfile`: the recording environment, since vhs ships ffmpeg and ttyd but not the curl and jq the demo actually types.
+
 ## [0.1.6] — 2026-08-01
 
 ### Changed

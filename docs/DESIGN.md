@@ -119,9 +119,9 @@ SETTLED   → REFUND_PENDING → REFUNDED          (full/partial devolução, ME
 
 ```bash
 docker run -p 8080:8080 arinelli/pix-sandbox
-curl -X POST :8080/cob -d '{"valor":{"original":"10.00"},"chave":"dev@example.com"}'
+curl -X POST localhost:8080/cob -d '{"valor":{"original":"10.00"},"chave":"dev@example.com"}'
 # → returns txid + EMV BR Code payload
-curl -X POST :8080/sandbox/pay -d '{"txid":"..."}'
+curl -X POST localhost:8080/sandbox/pay -d '{"txid":"..."}'
 # → your registered webhook receives the signed pix event
 ```
 

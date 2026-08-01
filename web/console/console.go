@@ -75,7 +75,7 @@ const pollTrigger = "every 2s"
 
 // createCommand is the one call that ends an empty ledger. It lives here
 // rather than in the template because the payload's braces are templ syntax.
-const createCommand = `curl -X POST :8080/cob -H 'Content-Type: application/json' \
+const createCommand = `curl -X POST localhost:8080/cob -H 'Content-Type: application/json' \
      -d '{"valor":{"original":"10.00"},"chave":"dev@example.com"}'`
 
 // Config carries what the console shows about the run itself.
