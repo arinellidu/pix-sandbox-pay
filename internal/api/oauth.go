@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 )
@@ -37,6 +38,12 @@ type tokenRequest struct {
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	req, err := parseTokenRequest(r)
 	if err != nil {
+		// The router's body cap answers 413 everywhere else on the surface;
+		// a body the cap cut short is not a malformed grant.
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			payloadTooLarge(w)
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, oauthError{
 			Error:            "invalid_request",
 			ErrorDescription: err.Error(),

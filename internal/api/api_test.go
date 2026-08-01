@@ -225,6 +225,21 @@ func TestOversizedBodyIs413(t *testing.T) {
 	}
 }
 
+// The token endpoint sits behind the same body cap as the rest of the
+// surface: an oversized body is 413, not a malformed grant.
+func TestOversizedTokenBodyIs413(t *testing.T) {
+	h, _ := newServer(t)
+
+	big := `{"grant_type":"client_credentials","scope":"` + strings.Repeat("a", 2<<20) + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(big))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := do(t, h, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413", rec.Code)
+	}
+}
+
 func TestUnknownRouteIs404(t *testing.T) {
 	h, _ := newServer(t)
 
