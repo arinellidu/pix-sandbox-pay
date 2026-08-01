@@ -6,8 +6,8 @@ package store
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -17,8 +17,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed schema.sql
-var schema string
+// ErrNotFound is returned when a lookup finds no row.
+var ErrNotFound = errors.New("store: not found")
 
 // Store is a handle on the sandbox database.
 type Store struct {
@@ -34,8 +34,8 @@ type Event struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
-// Open opens (creating it if needed) the SQLite database at path and applies
-// the schema. Parent directories are created as needed.
+// Open opens (creating it if needed) the SQLite database at path and brings it
+// up to the current schema. Parent directories are created as needed.
 func Open(path string) (*Store, error) {
 	if dir := filepath.Dir(path); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -55,9 +55,9 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("apply schema: %w", err)
+		return nil, err
 	}
 	return &Store{db: db}, nil
 }
@@ -82,22 +82,43 @@ func (s *Store) Ping(ctx context.Context) error { return s.db.PingContext(ctx) }
 // AppendEvent writes one entry to the append-only log and returns its id.
 // payload may be nil, any JSON-marshalable value, or a json.RawMessage.
 func (s *Store) AppendEvent(ctx context.Context, aggregate, typ string, payload any) (int64, error) {
-	raw := []byte("{}")
-	if payload != nil {
-		b, err := json.Marshal(payload)
-		if err != nil {
-			return 0, fmt.Errorf("marshal event payload: %w", err)
-		}
-		raw = b
+	raw, err := marshalPayload(payload)
+	if err != nil {
+		return 0, err
 	}
-	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO events (aggregate, type, payload, created_at) VALUES (?, ?, ?, ?)`,
-		aggregate, typ, string(raw), time.Now().UTC().Format(time.RFC3339Nano),
-	)
+	res, err := s.db.ExecContext(ctx, insertEventSQL,
+		aggregate, typ, raw, time.Now().UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return 0, fmt.Errorf("append event: %w", err)
 	}
 	return res.LastInsertId()
+}
+
+const insertEventSQL = `INSERT INTO events (aggregate, type, payload, created_at) VALUES (?, ?, ?, ?)`
+
+// appendEventTx logs an event inside a caller's transaction, so a state change
+// and its event commit together or not at all (INV-3).
+func appendEventTx(ctx context.Context, tx *sql.Tx, aggregate, typ string, payload any) error {
+	raw, err := marshalPayload(payload)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, insertEventSQL,
+		aggregate, typ, raw, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return fmt.Errorf("append event %s: %w", typ, err)
+	}
+	return nil
+}
+
+func marshalPayload(payload any) (string, error) {
+	if payload == nil {
+		return "{}", nil
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal event payload: %w", err)
+	}
+	return string(b), nil
 }
 
 // EventsByAggregate returns the log for one aggregate, oldest first.

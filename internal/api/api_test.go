@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/arinelliquebec/pix-sandbox/internal/api"
 	"github.com/arinelliquebec/pix-sandbox/internal/rng"
@@ -18,14 +19,23 @@ import (
 
 func newServer(t *testing.T) (http.Handler, *store.Store) {
 	t.Helper()
+	handler, st, _ := newServerAt(t, nil)
+	return handler, st
+}
+
+// newServerAt builds a server whose clock the test controls. Passing a nil
+// clock leaves it at time.Now.
+func newServerAt(t *testing.T, now func() time.Time) (http.Handler, *store.Store, api.Config) {
+	t.Helper()
 	st, err := store.Open(filepath.Join(t.TempDir(), "data", "sandbox.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
 
+	cfg := api.Config{Now: now}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return api.New(st, rng.New(rng.DefaultSeed), log).Router(), st
+	return api.New(st, rng.New(rng.DefaultSeed), log, cfg).Router(), st, cfg
 }
 
 func do(t *testing.T, h http.Handler, req *http.Request) *httptest.ResponseRecorder {

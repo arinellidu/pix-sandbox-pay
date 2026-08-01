@@ -48,3 +48,21 @@ func (s *Source) Bytes(n int) []byte {
 func (s *Source) Hex(n int) string {
 	return hex.EncodeToString(s.Bytes(n))
 }
+
+// UintN returns a uniform value in [0, n). It panics if n is zero.
+func (s *Source) UintN(n uint64) uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.r.Uint64N(n)
+}
+
+// String returns a string of n characters drawn from alphabet.
+func (s *Source) String(n int, alphabet string) string {
+	b := make([]byte, n)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i := range b {
+		b[i] = alphabet[s.r.Uint64N(uint64(len(alphabet)))]
+	}
+	return string(b)
+}

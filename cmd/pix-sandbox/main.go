@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/arinelliquebec/pix-sandbox/internal/api"
+	"github.com/arinelliquebec/pix-sandbox/internal/emv"
 	"github.com/arinelliquebec/pix-sandbox/internal/rng"
 	"github.com/arinelliquebec/pix-sandbox/internal/store"
 )
@@ -23,9 +24,12 @@ import (
 var version = "dev"
 
 type config struct {
-	addr   string
-	dbPath string
-	seed   uint64
+	addr         string
+	dbPath       string
+	seed         uint64
+	baseURL      string
+	merchantName string
+	merchantCity string
 }
 
 func main() {
@@ -61,9 +65,15 @@ func run() error {
 		"seed", src.Seed(),
 	)
 
+	handler := api.New(st, src, log, api.Config{
+		BaseURL:      cfg.baseURL,
+		MerchantName: cfg.merchantName,
+		MerchantCity: cfg.merchantCity,
+	}).Router()
+
 	srv := &http.Server{
 		Addr:              cfg.addr,
-		Handler:           api.New(st, src, log).Router(),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -94,9 +104,12 @@ func run() error {
 
 func loadConfig() (config, error) {
 	cfg := config{
-		addr:   envOr("PIX_SANDBOX_ADDR", ":8080"),
-		dbPath: envOr("PIX_SANDBOX_DB", "./data/sandbox.db"),
-		seed:   rng.DefaultSeed,
+		addr:         envOr("PIX_SANDBOX_ADDR", ":8080"),
+		dbPath:       envOr("PIX_SANDBOX_DB", "./data/sandbox.db"),
+		seed:         rng.DefaultSeed,
+		baseURL:      envOr("PIX_SANDBOX_BASE_URL", api.DefaultBaseURL),
+		merchantName: envOr("PIX_SANDBOX_MERCHANT_NAME", emv.DefaultMerchantName),
+		merchantCity: envOr("PIX_SANDBOX_MERCHANT_CITY", emv.DefaultMerchantCity),
 	}
 	if raw := os.Getenv("PIX_SANDBOX_SEED"); raw != "" {
 		seed, err := strconv.ParseUint(raw, 10, 64)
@@ -109,6 +122,9 @@ func loadConfig() (config, error) {
 	flag.StringVar(&cfg.addr, "addr", cfg.addr, "listen address")
 	flag.StringVar(&cfg.dbPath, "db", cfg.dbPath, "path to the SQLite database file")
 	flag.Uint64Var(&cfg.seed, "seed", cfg.seed, "seed for the deterministic random source")
+	flag.StringVar(&cfg.baseURL, "base-url", cfg.baseURL, "scheme-less host used to build charge locations")
+	flag.StringVar(&cfg.merchantName, "merchant-name", cfg.merchantName, "merchant name in the BR Code (field 59)")
+	flag.StringVar(&cfg.merchantCity, "merchant-city", cfg.merchantCity, "merchant city in the BR Code (field 60)")
 	flag.Parse()
 
 	return cfg, nil
