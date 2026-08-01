@@ -110,7 +110,10 @@ func (s *Server) handleSandboxPay(w http.ResponseWriter, r *http.Request) {
 
 	s.log.Info("pix received", "e2eid", payment.E2EID, "txid", payment.TxID,
 		"amount_cents", payment.AmountCents)
-	s.notify(r.Context(), payment, nil)
+	// The settle is committed; the callback it owes must not die with the
+	// request. A payer disconnecting — or chi's timeout firing — right after
+	// the commit would otherwise drop the delivery without a trace in the log.
+	s.notify(context.WithoutCancel(r.Context()), payment, nil)
 	writeJSON(w, http.StatusCreated, pixDTO(payment, nil))
 }
 
@@ -203,12 +206,15 @@ func (s *Server) handleCreateDevolucao(w http.ResponseWriter, r *http.Request) {
 	if created {
 		status = http.StatusCreated
 
-		payment, refunds, err := s.store.PaymentWithRefunds(r.Context(), e2eID)
+		// Same decoupling as the pay path: the refund is committed, so the
+		// reload and the callback survive the request that triggered them.
+		ctx := context.WithoutCancel(r.Context())
+		payment, refunds, err := s.store.PaymentWithRefunds(ctx, e2eID)
 		if err != nil {
 			s.log.Error("reload payment", "e2eid", e2eID, "err", err)
 		} else {
 			s.log.Info("pix refunded", "e2eid", e2eID, "id", refund.ID, "rtrid", refund.RtrID)
-			s.notify(r.Context(), payment, refunds)
+			s.notify(ctx, payment, refunds)
 		}
 	}
 	writeJSON(w, status, devolucaoDTO(refund))
