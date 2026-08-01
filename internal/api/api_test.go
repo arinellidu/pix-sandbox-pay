@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -19,13 +20,20 @@ import (
 
 func newServer(t *testing.T) (http.Handler, *store.Store) {
 	t.Helper()
-	handler, st, _ := newServerAt(t, nil)
-	return handler, st
+	return newServerWith(t, api.Config{})
 }
 
 // newServerAt builds a server whose clock the test controls. Passing a nil
 // clock leaves it at time.Now.
-func newServerAt(t *testing.T, now func() time.Time) (http.Handler, *store.Store, api.Config) {
+func newServerAt(t *testing.T, now func() time.Time) (http.Handler, *store.Store) {
+	t.Helper()
+	return newServerWith(t, api.Config{Now: now})
+}
+
+// newServerWith builds a server on a fresh store and drains its webhook
+// dispatcher when the test ends, so no delivery outlives the test that
+// triggered it.
+func newServerWith(t *testing.T, cfg api.Config) (http.Handler, *store.Store) {
 	t.Helper()
 	st, err := store.Open(filepath.Join(t.TempDir(), "data", "sandbox.db"))
 	if err != nil {
@@ -33,9 +41,16 @@ func newServerAt(t *testing.T, now func() time.Time) (http.Handler, *store.Store
 	}
 	t.Cleanup(func() { st.Close() })
 
-	cfg := api.Config{Now: now}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return api.New(st, rng.New(rng.DefaultSeed), log, cfg).Router(), st, cfg
+	srv := api.New(st, rng.New(rng.DefaultSeed), log, cfg)
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Close(ctx); err != nil {
+			t.Errorf("close server: %v", err)
+		}
+	})
+	return srv.Router(), st
 }
 
 func do(t *testing.T, h http.Handler, req *http.Request) *httptest.ResponseRecorder {

@@ -11,10 +11,14 @@ import (
 const problemBase = "https://pix.bcb.gov.br/api/v2/error/"
 
 const (
-	problemCobOperacaoInvalida = "CobOperacaoInvalida"
-	problemCobNaoEncontrada    = "CobNaoEncontrada"
-	problemRequisicaoInvalida  = "RequisicaoInvalida"
-	problemErroInterno         = "ErroInternoDoServidor"
+	problemCobOperacaoInvalida       = "CobOperacaoInvalida"
+	problemCobNaoEncontrada          = "CobNaoEncontrada"
+	problemPixNaoEncontrado          = "PixNaoEncontrado"
+	problemDevolucaoOperacaoInvalida = "DevolucaoOperacaoInvalida"
+	problemWebhookOperacaoInvalida   = "WebhookOperacaoInvalida"
+	problemWebhookNaoEncontrado      = "WebhookNaoEncontrado"
+	problemRequisicaoInvalida        = "RequisicaoInvalida"
+	problemErroInterno               = "ErroInternoDoServidor"
 )
 
 // violacao is one field-level complaint inside a problem document.
@@ -57,6 +61,34 @@ func malformedRequest(w http.ResponseWriter, detail string) {
 func notFound(w http.ResponseWriter, detail string) {
 	writeProblem(w, http.StatusNotFound, problemCobNaoEncontrada,
 		"Cobrança não encontrada.", detail, nil)
+}
+
+// conflict refuses an operation the charge's state machine forbids — paying a
+// charge that already settled. BACEN has no slug for it because no BACEN
+// endpoint can reach it; the sandbox reuses the charge one and says why.
+func conflict(w http.ResponseWriter, detail string) {
+	writeProblem(w, http.StatusConflict, problemCobOperacaoInvalida,
+		"Cobrança inválida.", detail, nil)
+}
+
+func notFoundPix(w http.ResponseWriter, detail string) {
+	writeProblem(w, http.StatusNotFound, problemPixNaoEncontrado,
+		"Pix não encontrado.", detail, nil)
+}
+
+func badRefund(w http.ResponseWriter, detail string, violacoes []violacao) {
+	writeProblem(w, http.StatusBadRequest, problemDevolucaoOperacaoInvalida,
+		"Devolução inválida.", detail, violacoes)
+}
+
+func badWebhook(w http.ResponseWriter, detail string, violacoes []violacao) {
+	writeProblem(w, http.StatusBadRequest, problemWebhookOperacaoInvalida,
+		"Webhook inválido.", detail, violacoes)
+}
+
+func notFoundWebhook(w http.ResponseWriter, detail string) {
+	writeProblem(w, http.StatusNotFound, problemWebhookNaoEncontrado,
+		"Webhook não encontrado.", detail, nil)
 }
 
 func internalError(w http.ResponseWriter) {
