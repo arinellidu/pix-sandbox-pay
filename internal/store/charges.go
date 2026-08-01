@@ -192,7 +192,14 @@ func scanCharge(row rowScanner) (core.Charge, error) {
 	return c, nil
 }
 
-func formatTime(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
+// SortableTime is the timestamp layout for TEXT columns: RFC 3339 with a
+// fixed-width fraction, so lexicographic order — which is what ORDER BY and
+// the console's freshness watermark compare — equals chronological order.
+// time.RFC3339Nano trims trailing zeros, which inverted same-second ordering
+// whenever one stamp's fraction was a prefix of another's.
+const SortableTime = "2006-01-02T15:04:05.000000000Z07:00"
+
+func formatTime(t time.Time) string { return t.UTC().Format(SortableTime) }
 
 func parseTime(s string) (time.Time, error) {
 	t, err := time.Parse(time.RFC3339Nano, s)

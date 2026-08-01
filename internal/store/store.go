@@ -87,7 +87,7 @@ func (s *Store) AppendEvent(ctx context.Context, aggregate, typ string, payload 
 		return 0, err
 	}
 	res, err := s.db.ExecContext(ctx, insertEventSQL,
-		aggregate, typ, raw, time.Now().UTC().Format(time.RFC3339Nano))
+		aggregate, typ, raw, formatTime(time.Now()))
 	if err != nil {
 		return 0, fmt.Errorf("append event: %w", err)
 	}
@@ -104,7 +104,7 @@ func appendEventTx(ctx context.Context, tx *sql.Tx, aggregate, typ string, paylo
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, insertEventSQL,
-		aggregate, typ, raw, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		aggregate, typ, raw, formatTime(time.Now())); err != nil {
 		return fmt.Errorf("append event %s: %w", typ, err)
 	}
 	return nil

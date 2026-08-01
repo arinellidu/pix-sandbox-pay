@@ -73,6 +73,40 @@ func TestCreateChargeRoundTrip(t *testing.T) {
 	}
 }
 
+// created_at is a TEXT column and ORDER BY compares bytes, so same-second
+// stamps with different fraction widths must still sort chronologically.
+// RFC3339Nano trimmed trailing zeros ("…00Z", "…00.5Z"), which sorted a whole
+// second *after* its own fractions; SortableTime pads the fraction instead.
+func TestListChargesOrdersSameSecondFractions(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	base := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
+
+	charges := []core.Charge{
+		sampleCharge("aaa123def456ghi789jkl012mno345", base),                           // whole second
+		sampleCharge("bbb123def456ghi789jkl012mno345", base.Add(500*time.Millisecond)), // .5
+		sampleCharge("ccc123def456ghi789jkl012mno345", base.Add(510*time.Millisecond)), // .51
+	}
+	for _, c := range charges {
+		if _, _, err := st.CreateCharge(ctx, c); err != nil {
+			t.Fatalf("CreateCharge(%s): %v", c.TxID, err)
+		}
+	}
+
+	got, err := st.ListCharges(ctx, 10)
+	if err != nil {
+		t.Fatalf("ListCharges: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("len = %d, want 3", len(got))
+	}
+	for i, want := range []string{charges[2].TxID, charges[1].TxID, charges[0].TxID} {
+		if got[i].TxID != want {
+			t.Errorf("position %d = %s, want %s (newest first)", i, got[i].TxID, want)
+		}
+	}
+}
+
 func TestCreateChargeWithoutDevedor(t *testing.T) {
 	st := newStore(t)
 	ctx := context.Background()
