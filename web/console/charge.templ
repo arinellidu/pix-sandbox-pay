@@ -1,0 +1,141 @@
+package console
+
+templ chargePage(v ChargeView) {
+	@layout("cob "+v.TxID+" — pix-sandbox", v.Rail) {
+		<a class="back" href="/console">Back to charges</a>
+		<header class="charge">
+			<h1 class="charge__amount">
+				{ v.Amount }
+				<span class="charge__unit mono">BRL</span>
+			</h1>
+			<span class={ "status", "status--lg", v.StatusClass }>{ v.Status }</span>
+			<dl class="facts">
+				<div class="fact fact--wide">
+					<dt>txid</dt>
+					<dd class="mono select">{ v.TxID }</dd>
+				</div>
+				<div class="fact">
+					<dt>chave</dt>
+					<dd class="mono">{ v.Chave }</dd>
+				</div>
+				<div class="fact">
+					<dt>created · UTC</dt>
+					<dd class="mono">{ v.Created }</dd>
+				</div>
+				<div class="fact">
+					<dt>expires · UTC</dt>
+					<dd class="mono">{ v.Expires }</dd>
+				</div>
+				if v.Devedor != "" {
+					<div class="fact fact--wide">
+						<dt>devedor</dt>
+						<dd>{ v.Devedor }</dd>
+					</div>
+				}
+				if v.Solicitacao != "" {
+					<div class="fact fact--wide">
+						<dt>solicitação ao pagador</dt>
+						<dd>{ v.Solicitacao }</dd>
+					</div>
+				}
+			</dl>
+		</header>
+		if v.Payment != nil {
+			<section class="pix">
+				<h2>Settled</h2>
+				<dl class="facts">
+					<div class="fact fact--wide">
+						<dt>endToEndId</dt>
+						<dd class="mono select">{ v.Payment.E2EID }</dd>
+					</div>
+					<div class="fact">
+						<dt>horário · UTC</dt>
+						<dd class="mono">{ v.Payment.Horario }</dd>
+					</div>
+					<div class="fact">
+						<dt>amount</dt>
+						<dd class="mono">{ v.Payment.Amount }</dd>
+					</div>
+					<div class="fact">
+						<dt>refunded</dt>
+						<dd class="mono">{ v.Payment.Refunded }</dd>
+					</div>
+					if v.Payment.Info != "" {
+						<div class="fact fact--wide">
+							<dt>infoPagador</dt>
+							<dd>{ v.Payment.Info }</dd>
+						</div>
+					}
+				</dl>
+			</section>
+		}
+		<section class="brcode">
+			<h2>BR Code</h2>
+			<p class="brcode__payload mono select">{ v.EMV }</p>
+		</section>
+		<section class="timeline">
+			<h2>Recorded transitions</h2>
+			<p class="timeline__note">
+				Every state this charge reached, as it was written to the append-only log.
+				Each module steps in from the margin as the story moves from the charge to
+				the payment it settled into, and again to the callback that announced it.
+			</p>
+			<ul class="legend">
+				<li><span class="legend__ink legend__ink--settled"></span>settled</li>
+				<li><span class="legend__ink legend__ink--refund"></span>devolução</li>
+				<li><span class="legend__ink legend__ink--failed"></span>expired or failed</li>
+			</ul>
+			<div class="events__head">
+				<span>log id</span>
+				<span>transition</span>
+				<span class="events__head-time">UTC</span>
+			</div>
+			<ol class="events">
+				for _, e := range v.Events {
+					if e.DayBreak != "" {
+						<li class="daybreak mono">{ e.DayBreak }</li>
+					}
+					<li class={ "event", e.IndentClass, e.AccentClass }>
+						<span class="event__id mono" title="id in the append-only log, counted across every aggregate">{ e.Seq }</span>
+						<h3 class="event__type">{ e.Type }</h3>
+						<time class="event__at mono" datetime={ e.Full }>{ e.At }</time>
+						<dl class="event__payload">
+							for _, p := range e.Pairs {
+								<div class={ "pair", templ.KV("pair--block", p.Block) }>
+									<dt class="mono">{ p.Key }</dt>
+									<dd class="mono">{ p.Value }</dd>
+								</div>
+							}
+						</dl>
+					</li>
+				}
+			</ol>
+		</section>
+	}
+}
+
+// errorPage keeps a failure inside the console's own world: a reader who has
+// just lost the store should not also lose the surface they were reading.
+templ errorPage(what string, rail railView) {
+	@layout("error — pix-sandbox", rail) {
+		<a class="back" href="/console">Back to charges</a>
+		<div class="empty">
+			<p class="empty__lead">The console could not { what }.</p>
+			<p class="empty__hint">
+				The API may still be answering — this page reads the store directly.
+				The reason was written to the sandbox's log on stdout.
+			</p>
+		</div>
+	}
+}
+
+templ notFoundPage(txid string, rail railView) {
+	@layout("not found — pix-sandbox", rail) {
+		<a class="back" href="/console">Back to charges</a>
+		<div class="empty">
+			<p class="empty__lead">No charge with this txid was ever recorded.</p>
+			<pre class="empty__cmd mono"><code>{ txid }</code></pre>
+			<p class="empty__hint">A charge only exists here once <code>POST /cob</code> has answered 201.</p>
+		</div>
+	}
+}

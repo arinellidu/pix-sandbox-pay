@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "not gofmt'd:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # The console's generated code is committed so the image needs no
+      # generator. This proves the committed copy matches its .templ source.
+      - name: templ generate is current
+        run: |
+          go tool templ generate
+          git diff --exit-code -- '*_templ.go'
+
+      # The race detector needs cgo, which this runner has and a Windows dev
+      # box usually does not — so this is the job that actually runs it.
+      - name: go test -race
+        run: go test -race ./...
+        env:
+          CGO_ENABLED: 1
+
+      - name: build
+        run: CGO_ENABLED=0 go build -trimpath -o /tmp/pix-sandbox ./cmd/pix-sandbox
+
+      # The acceptance criterion of every phase: the demo loop runs end to end.
+      - name: demo loop
+        run: |
+          /tmp/pix-sandbox -db /tmp/ci.db &
+          for i in $(seq 1 50); do
+            curl -fsS localhost:8080/health >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+
+          txid=$(curl -fsS -X POST localhost:8080/cob \
+            -H 'Content-Type: application/json' \
+            -d '{"valor":{"original":"10.00"},"chave":"dev@example.com"}' \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["txid"])')
+
+          e2eid=$(curl -fsS -X POST localhost:8080/sandbox/pay \
+            -H 'Content-Type: application/json' \
+            -d "{\"txid\":\"$txid\"}" \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["endToEndId"])')
+
+          curl -fsS "localhost:8080/pix/$e2eid" >/dev/null
+          curl -fsS -X PUT "localhost:8080/pix/$e2eid/devolucao/ci1" \
+            -H 'Content-Type: application/json' -d '{"valor":"10.00"}' >/dev/null
+
+          status=$(curl -fsS "localhost:8080/cob/$txid" \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["status"])')
+          [ "$status" = "CONCLUIDA" ] || { echo "charge is $status, want CONCLUIDA"; exit 1; }
+
+          curl -fsS localhost:8080/console | grep -q "$txid" \
+            || { echo "the console does not show the paid charge"; exit 1; }
+
+          echo "demo loop ok: $txid -> $e2eid"

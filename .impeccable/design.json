@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-01T00:00:00Z",
+  "title": "Design System: pix-sandbox console",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0b0b0b",
+        "note": "Ground of every surface. No tonal ramp: this system is deliberately flat and uses exactly two neutral steps, so a synthesised ramp would document tokens the console does not have."
+      },
+      "ink-raised": {
+        "role": "neutral",
+        "displayName": "Ink Raised",
+        "canonical": "#131313",
+        "note": "The one raised tone — hovered rows, payload blocks, the BR Code field. This is how depth is expressed without a shadow."
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Offset Paper",
+        "canonical": "#edeae3",
+        "note": "All primary text, the 3px structural rules, and the knockout field used for a devolução. Warm on purpose; pure white would read as screen rather than ink."
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "Dim",
+        "canonical": "#96918a",
+        "note": "Labels, secondary data, timestamps at rest. 5.3:1 against ink."
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#3b3934",
+        "note": "The hairline that defines every module. Raised from #2b2a28 during the finish review: the rule that carries the form has to be visible."
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong",
+        "canonical": "#56534e",
+        "note": "Structural rules, the outlined ATIVA ring, and the timeline step marker at narrow widths."
+      },
+      "concrete-blue": {
+        "role": "primary",
+        "displayName": "Concrete Blue",
+        "canonical": "#1b3fd4",
+        "note": "Settlement, everywhere and only. 6.3:1 with paper text."
+      },
+      "concrete-red": {
+        "role": "secondary",
+        "displayName": "Concrete Red",
+        "canonical": "#c81e14",
+        "note": "Expiry, failed delivery, lost connection. 4.8:1 with paper text."
+      },
+      "slate": {
+        "role": "tertiary",
+        "displayName": "Slate",
+        "canonical": "#4a463f",
+        "note": "Withdrawal without failure — the REMOVIDA states. 7.7:1 with paper text."
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The charge amount, one per page, at poster scale." },
+      "headline": { "displayName": "Masthead", "purpose": "The product name in the sheet's left margin." },
+      "title": { "displayName": "Transition", "purpose": "The event type heading a timeline module." },
+      "body": { "displayName": "Body", "purpose": "Prose, capped at 62-68ch." },
+      "data": { "displayName": "Data", "purpose": "Every identifier, amount, timestamp and payload value." },
+      "label": { "displayName": "Label", "purpose": "Column heads and field names; uppercase, tracked, dim." }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "press-ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Exponential ease-out for the one authored moment: a freshly arrived row printing on."
+      },
+      {
+        "name": "ink-in",
+        "value": "clip-path: inset(0 100% 0 0) -> inset(0 0 0 0) over 0.55s",
+        "purpose": "The status field wipes open the way a press lays ink. Only on rows that arrived since the viewer's last poll."
+      },
+      {
+        "name": "rule-in",
+        "value": "border-bottom-color: paper -> rule over 1.6s",
+        "purpose": "The new row's rule settles from paper down to hairline, so the arrival is legible after the wipe finishes."
+      }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "60rem", "purpose": "The margin becomes a top band; the ledger reflows to three lines per row; the timeline step is carried by a rule instead of padding." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Status field — settled",
+      "kind": "chip",
+      "refersTo": "status-concluida",
+      "description": "A flat rectangle of ink with the state knocked out of it. Used in the ledger's last column and, larger, under the charge amount.",
+      "html": "<span class=\"ds-status ds-status-concluida\">CONCLUIDA</span>",
+      "css": ".ds-status { display: block; padding: 0.3rem 0.5rem; font-family: Archivo, system-ui, sans-serif; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-align: center; text-transform: uppercase; white-space: nowrap; } .ds-status-concluida { background: #1b3fd4; color: #edeae3; }"
+    },
+    {
+      "name": "Status field — active",
+      "kind": "chip",
+      "refersTo": "status-ativa",
+      "description": "The state that has not happened yet is the state with no ink: unfilled, with a 1px ring standing in for a border.",
+      "html": "<span class=\"ds-status ds-status-ativa\">ATIVA</span>",
+      "css": ".ds-status { display: block; padding: 0.3rem 0.5rem; font-family: Archivo, system-ui, sans-serif; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-align: center; text-transform: uppercase; white-space: nowrap; } .ds-status-ativa { color: #edeae3; box-shadow: inset 0 0 0 1px #56534e; }"
+    },
+    {
+      "name": "Ledger row",
+      "kind": "custom",
+      "refersTo": "ledger-row",
+      "description": "One module of the ledger: identical to its neighbours, varying only by content. Hover lifts the ground and brightens the txid; no transform, no shadow.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row-txid\">shTHTzjwzZ…rnI5</span><span class=\"ds-row-amount\">10.00</span><span class=\"ds-row-chave\">dev@example.com</span><time class=\"ds-row-time\">2026-08-01 10:14:07</time><span class=\"ds-status ds-status-concluida\">CONCLUIDA</span></a>",
+      "css": ".ds-row { display: grid; grid-template-columns: minmax(8rem, 13rem) minmax(5rem, 7rem) minmax(9rem, 1fr) minmax(10rem, 12rem) 9.5rem; align-items: center; gap: 1rem; padding: 0.7rem 0; border-bottom: 1px solid #3b3934; color: #edeae3; text-decoration: none; font-family: Archivo, system-ui, sans-serif; font-size: 15px; } .ds-row:hover { background: #131313; } .ds-row:hover .ds-row-txid { color: #edeae3; } .ds-row-txid, .ds-row-amount, .ds-row-time { font-family: 'Fragment Mono', ui-monospace, monospace; } .ds-row-txid { font-size: 0.8125rem; color: #96918a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-row-amount { text-align: right; font-size: 1rem; font-variant-numeric: tabular-nums; } .ds-row-chave { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; } .ds-row-time { color: #96918a; font-size: 0.8125rem; font-variant-numeric: tabular-nums; } .ds-status { display: block; padding: 0.3rem 0.5rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-align: center; text-transform: uppercase; } .ds-status-concluida { background: #1b3fd4; color: #edeae3; }"
+    },
+    {
+      "name": "Fact cell",
+      "kind": "card",
+      "refersTo": "fact-cell",
+      "description": "One field of a specification sheet: an uppercase dim label over its value, rules borne by the cell so the box always closes.",
+      "html": "<div class=\"ds-facts\"><div class=\"ds-fact\"><dt>chave</dt><dd>dev@example.com</dd></div><div class=\"ds-fact\"><dt>created · UTC</dt><dd class=\"ds-mono\">2026-08-01 10:14:07</dd></div><div class=\"ds-fact\"><dt>expires · UTC</dt><dd class=\"ds-mono\">2026-08-02 10:14:07</dd></div></div>",
+      "css": ".ds-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #3b3934; border-left: 1px solid #3b3934; font-family: Archivo, system-ui, sans-serif; } .ds-fact { padding: 0.75rem 0.9rem; border-right: 1px solid #3b3934; border-bottom: 1px solid #3b3934; } .ds-fact dt { color: #96918a; font-size: 0.6875rem; letter-spacing: 0.1em; text-transform: uppercase; } .ds-fact dd { margin: 0.3rem 0 0; color: #edeae3; font-size: 0.875rem; overflow-wrap: anywhere; } .ds-mono { font-family: 'Fragment Mono', ui-monospace, monospace; }"
+    },
+    {
+      "name": "Timeline module",
+      "kind": "custom",
+      "refersTo": "event-serial",
+      "description": "One recorded transition. The log id doubles as the transition's colour field; the module's left padding encodes which aggregate it belongs to.",
+      "html": "<li class=\"ds-event ds-event-step-1\"><span class=\"ds-event-id ds-event-settled\">6</span><h3 class=\"ds-event-type\">pix.received</h3><time class=\"ds-event-at\">10:14:07.846</time><dl class=\"ds-event-payload\"><div class=\"ds-pair\"><dt>amount_cents</dt><dd>1000</dd></div><div class=\"ds-pair\"><dt>status</dt><dd>SETTLED</dd></div></dl></li>",
+      "css": ".ds-event { list-style: none; display: grid; grid-template-columns: 3.25rem minmax(0, 1fr) 6rem; align-items: baseline; gap: 0.75rem 1rem; padding: 1rem 0 1.1rem; border-bottom: 1px solid #3b3934; font-family: Archivo, system-ui, sans-serif; color: #edeae3; } .ds-event-step-1 { padding-left: 2.5rem; } .ds-event-id { justify-self: start; min-width: 2.25rem; padding: 0.15rem 0.4rem; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.75rem; text-align: right; color: #96918a; } .ds-event-settled { background: #1b3fd4; color: #edeae3; } .ds-event-type { margin: 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.015em; } .ds-event-at { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.75rem; color: #96918a; text-align: right; } .ds-event-payload { grid-column: 2 / -1; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr)); gap: 0.35rem 2rem; } .ds-pair { display: grid; grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr); gap: 0.75rem; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.75rem; line-height: 1.5; } .ds-pair dt { color: #96918a; } .ds-pair dd { margin: 0; overflow-wrap: anywhere; }"
+    },
+    {
+      "name": "Connection state",
+      "kind": "custom",
+      "refersTo": "status-expirada",
+      "description": "The margin says whether what you are reading is current. The lost state replaces the live line in place and never paints over the data it qualifies.",
+      "html": "<p class=\"ds-state\"><span class=\"ds-state-live\">Live · polling every 2s</span><span class=\"ds-state-lost\">No answer from the sandbox</span></p>",
+      "css": ".ds-state { margin: 0.9rem 0 0; font-family: Archivo, system-ui, sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; } .ds-state-live { color: #96918a; } .ds-state-lost { display: inline-block; padding: 0.2rem 0.45rem; background: #c81e14; color: #edeae3; font-weight: 600; }"
+    },
+    {
+      "name": "Empty-state command",
+      "kind": "custom",
+      "refersTo": "fact-cell",
+      "description": "The empty ledger answers the only question its reader has: the command that ends the emptiness, on the raised ground.",
+      "html": "<pre class=\"ds-cmd\"><code>curl -X POST :8080/cob -H 'Content-Type: application/json' \\\n     -d '{\"valor\":{\"original\":\"10.00\"},\"chave\":\"dev@example.com\"}'</code></pre>",
+      "css": ".ds-cmd { margin: 1.25rem 0 0; padding: 1rem 1.1rem; border-left: 1px solid #56534e; background: #131313; color: #edeae3; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.8125rem; line-height: 1.6; overflow-x: auto; white-space: pre; } .ds-cmd code { font: inherit; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Concrete Grid",
+    "overview": "The console is set the way Amilcar de Castro set the Jornal do Brasil in 1959 and the way the Brazilian concretists composed a series: a fixed modular grid, hairline rules doing the structural work, flat fields of a single ink standing in for ornament, and empty space treated as a material rather than as leftovers. The choice is not decoration borrowed from a Brazilian subject. An append-only event log is a serial progression — identical modules whose content varies by rule — which is precisely the argument concretism was making about form.\n\nThe register is dark because of where the surface lives: a browser window next to a terminal, usually at night, usually while something is wrong. Ink ground, offset-paper ink, and two poster colours that mean exactly one thing each. Nothing here is soft. There are no rounded corners, no shadows, no icons, no gradients, and no glass; depth is conveyed by rule weight and by a single raised surface tone. Density is high and deliberate — the reader is scanning for the one row that went wrong — but the rhythm is quiet enough to read for a while.\n\nThe system's honesty rule is inherited from the product: the console shows recorded transitions and never inferred state. That extends to its visuals. Colour carries meaning but never carries it alone; a status is always spelled out. A failure is shown in the margin without painting over the data it qualifies. Nothing on the page reaches outside the binary.",
+    "keyCharacteristics": [
+      "Modular grid with 1px rules; 3px paper rules open and close a field.",
+      "Flat colour fields, never chips with radius or shadow.",
+      "Archivo for voice, Fragment Mono for every identifier, amount and timestamp.",
+      "Zero radius, zero shadow, zero icons — the form language is the rule and the field.",
+      "Motion appears exactly once: a row that arrived since the last poll prints itself on."
+    ],
+    "rules": [
+      {
+        "name": "The Never-Colour-Alone Rule",
+        "body": "A state is always spelled out in words inside its field. The colour accelerates recognition for a reader who already knows the system; it never carries the meaning by itself. A console whose statuses only differ by hue fails the one person it exists for.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Meaning Per Ink Rule",
+        "body": "Blue is settlement, red is failure or expiry, slate is withdrawal, paper is a knockout. An ink acquires no second job — not for links, not for focus, not for emphasis.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono-Is-Data Rule",
+        "body": "Fragment Mono appears where a value is meant to be compared, copied, or matched against a terminal — identifiers, amounts, timestamps, payloads. It is never used as a costume for \"technical\". Prose is Archivo even on a page full of hashes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Copy-In-One-Gesture Rule",
+        "body": "Any value a reader will paste elsewhere — txid, endToEndId, BR Code payload — carries user-select: all, so one click takes the whole value and nothing adjacent.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-Sheet Rule",
+        "body": "This is printed matter. If an element needs to separate from its neighbour, it gets a rule or a field of ink — never a shadow, never a radius, never a glow. A shadow appearing in this system is a sign that someone reached for a component from another world.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do spell every state out in words inside its field, and let colour only accelerate the reading (The Never-Colour-Alone Rule).",
+      "Do open and close a field with the 3px paper rule, so a short list still reads as a finished sheet.",
+      "Do set every identifier, amount, timestamp and payload value in Fragment Mono, and everything else in Archivo.",
+      "Do give structured values their own full-width block on #131313 rather than squeezing them into a column.",
+      "Do carry meaning with position: the timeline's step from the margin is how causation is shown.",
+      "Do keep every asset inside the binary — fonts, stylesheet, script, favicon — and fingerprint their URLs so an upgrade cannot serve a stale stylesheet.",
+      "Do suppress the one authored animation under prefers-reduced-motion."
+    ],
+    "donts": [
+      "Don't add a radius, a shadow, a gradient, or a glass surface. This is printed matter (The Flat-Sheet Rule).",
+      "Don't introduce an icon set, an emoji, or a Unicode glyph standing in for one. The system has no icons and does not need them.",
+      "Don't give an ink a second job — blue is settlement and nothing else (The One Meaning Per Ink Rule).",
+      "Don't use a coloured side stripe thicker than 1px to mark a category; the timeline step and the serial's field already do that work.",
+      "Don't put an action in this surface. The console is read-only by design: the terminal acts, the console watches.",
+      "Don't let a value break mid-token to fit a column. Widen the track, or give the value its own row.",
+      "Don't show a poll as live when it is failing, or an empty page when the data is merely stale."
+    ]
+  }
+}

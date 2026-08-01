@@ -132,12 +132,17 @@ func (s *Store) EventsByAggregate(ctx context.Context, aggregate string) ([]Even
 	}
 	defer rows.Close()
 
+	return scanEvents(rows)
+}
+
+func scanEvents(rows *sql.Rows) ([]Event, error) {
 	var out []Event
 	for rows.Next() {
 		var (
 			e       Event
 			payload string
 			created string
+			err     error
 		)
 		if err := rows.Scan(&e.ID, &e.Aggregate, &e.Type, &payload, &created); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)

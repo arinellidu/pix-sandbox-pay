@@ -3,3 +3,7 @@
 /bin/
 .env
 *.db
+
+# Tooling scratch: browser-automation captures and one-off decision-page logs.
+/.playwright-mcp/
+/.impeccable/questions/

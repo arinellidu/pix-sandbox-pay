@@ -1,0 +1,64 @@
+package console
+
+templ ledger(v LedgerView) {
+	@layout("pix-sandbox — console", v.Rail) {
+		<h1 class="page-title">Charges</h1>
+		<div class="ledger">
+			<div class="ledger__head">
+				<span>txid</span>
+				<span class="col-amount">amount</span>
+				<span>chave</span>
+				<span>created · UTC</span>
+				<span class="col-status">status</span>
+			</div>
+			@ledgerRows(v.Rows)
+		</div>
+		<p class="ledger__foot">
+			The 60 most recent charges. This page polls every two seconds — a charge
+			created in the terminal prints itself in here.
+		</p>
+	}
+}
+
+// ledgerRows is both the first paint and the polled fragment: the poll URL
+// carries the newest instant this viewer has seen, so the server can mark what
+// arrived since without holding any per-viewer state.
+templ ledgerRows(v RowsView) {
+	<div
+		class="rows"
+		id="rows"
+		hx-get={ v.PollURL }
+		hx-trigger={ v.Poll }
+		hx-target="this"
+		hx-swap="outerHTML"
+	>
+		if len(v.Charges) == 0 {
+			@emptyLedger()
+		}
+		for _, row := range v.Charges {
+			<a
+				class={ "row", templ.KV("row--fresh", row.Fresh) }
+				href={ templ.SafeURL("/console/cob/" + row.TxID) }
+			>
+				<span class="row__txid mono" title={ row.TxID }>{ row.Short }</span>
+				<span class="row__amount mono">
+					{ row.Amount }
+					<span class="row__unit">BRL</span>
+				</span>
+				<span class="row__chave">{ row.Chave }</span>
+				<time class="row__time mono" datetime={ row.Full }>{ row.Created }</time>
+				<span class={ "status", row.StatusClass } title={ row.StatusFull }>{ row.Status }</span>
+			</a>
+		}
+	</div>
+}
+
+// emptyLedger is the first thing most people see. It answers the only question
+// they have at that moment, with the command that ends the emptiness.
+templ emptyLedger() {
+	<div class="empty">
+		<p class="empty__lead">No charges yet. This ledger fills as the API is called.</p>
+		<pre class="empty__cmd mono"><code>{ createCommand }</code></pre>
+		<p class="empty__hint">The row appears here on its own — this page polls every two seconds.</p>
+	</div>
+}

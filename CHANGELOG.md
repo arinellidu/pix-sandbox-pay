@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 ## [Unreleased]
 
 ### Added
+- S3 console and release plumbing: an embedded read-only UI at `/console` (templ + htmx, assets fingerprinted and served from the binary — no external request) showing the charge ledger and the recorded timeline of any txid; GitHub Actions running vet, gofmt, a generated-code drift check, `-race` and the demo loop end to end, plus a tagged release that pushes a multi-arch image to ghcr.io; a `vhs` tape for the demo GIF; and `DESIGN.md` recording the console's visual system.
 - S2 payments: `POST /sandbox/pay`, `GET /pix/{e2eId}`, `PUT /pix/{e2eId}/devolucao/{id}` and `PUT`/`GET /webhook/{chave}`, with e2eId/rtrId unique by construction, full refunds bounded by what settled (INV-4, enforced in SQL too), and an asynchronous webhook dispatcher that signs with HMAC-SHA256, retries at 1s/5s/25s and records every outcome in the event log.
 - S1 charges: `POST /cob`, `PUT /cob/{txid}`, `GET /cob/{txid}` and `GET /cob/{txid}/qrcode`, idempotent on txid, with a self-contained EMV BR Code (key in 26-01, txid in 62-05, CRC16-CCITT-FALSE in 63), lazily recorded expiry, BACEN-shaped RFC 7807 errors, and versioned SQLite migrations.
 - S0 skeleton: chi router with `GET /health` and a mock `POST /oauth/token`, embedded CGO-free SQLite store with the append-only `events` log and the `charges` projection, seeded deterministic random source, Makefile, and a multi-stage distroless Dockerfile.
