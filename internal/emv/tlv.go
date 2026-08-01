@@ -57,6 +57,12 @@ func Parse(payload string) ([]TLV, error) {
 		if !isDigits(id) {
 			return nil, fmt.Errorf("emv: field id %q at offset %d is not numeric", id, i)
 		}
+		// Atoi alone would accept signed pairs like "-1", whose negative
+		// length inverts the slice bounds below.
+		if !isDigits(payload[i+2 : i+4]) {
+			return nil, fmt.Errorf("emv: length %q for field %s at offset %d is not numeric",
+				payload[i+2:i+4], id, i)
+		}
 		length, err := strconv.Atoi(payload[i+2 : i+4])
 		if err != nil {
 			return nil, fmt.Errorf("emv: bad length for field %s at offset %d: %w", id, i, err)
