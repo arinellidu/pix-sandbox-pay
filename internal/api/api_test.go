@@ -41,6 +41,13 @@ func newServerWith(t *testing.T, cfg api.Config) (http.Handler, *store.Store) {
 	}
 	t.Cleanup(func() { st.Close() })
 
+	return newServerOn(t, st, cfg), st
+}
+
+// newServerOn builds a server over an existing store — a fresh rng on an old
+// database is exactly what a process restart looks like.
+func newServerOn(t *testing.T, st *store.Store, cfg api.Config) http.Handler {
+	t.Helper()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	srv := api.New(st, rng.New(rng.DefaultSeed), log, cfg)
 	t.Cleanup(func() {
@@ -50,7 +57,7 @@ func newServerWith(t *testing.T, cfg api.Config) (http.Handler, *store.Store) {
 			t.Errorf("close server: %v", err)
 		}
 	})
-	return srv.Router(), st
+	return srv.Router()
 }
 
 func do(t *testing.T, h http.Handler, req *http.Request) *httptest.ResponseRecorder {

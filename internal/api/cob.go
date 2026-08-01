@@ -103,6 +103,7 @@ func (s *Server) handleCreateCob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	minted := txid == ""
 	charge, violacoes := s.buildCharge(txid, req)
 	if len(violacoes) > 0 {
 		badRequest(w, "the charge could not be created", violacoes)
@@ -114,6 +115,26 @@ func (s *Server) handleCreateCob(w http.ResponseWriter, r *http.Request) {
 		s.log.Error("create charge", "txid", charge.TxID, "err", err)
 		internalError(w)
 		return
+	}
+
+	// A replay is idempotency only when the caller chose the txid. A minted
+	// txid that already exists is a collision with a previous run of the same
+	// seed — the rng restarts on boot, the database does not — so handing back
+	// the stored charge would silently serve another run's data. Mint again:
+	// each draw advances the seeded stream, and the collided prefix is at most
+	// as long as the table.
+	for minted && !created {
+		charge, violacoes = s.buildCharge("", req)
+		if len(violacoes) > 0 {
+			badRequest(w, "the charge could not be created", violacoes)
+			return
+		}
+		stored, created, err = s.store.CreateCharge(r.Context(), charge)
+		if err != nil {
+			s.log.Error("create charge", "txid", charge.TxID, "err", err)
+			internalError(w)
+			return
+		}
 	}
 
 	status := http.StatusOK
