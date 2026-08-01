@@ -24,7 +24,10 @@ param(
                  'tidy', 'fmt', 'vet', 'lint', 'clean', 'help')]
     [string]$Target = 'help',
 
-    [string]$Version = 'dev',
+    # Left empty on purpose: an unstamped binary resolves its version from the
+    # module or the VCS commit (see main.go). A 'dev' default here would win
+    # that cascade and every local build would misreport itself on /health.
+    [string]$Version = '',
     [string]$Image = 'ghcr.io/arinellidu/pix-sandbox-pay'
 )
 
@@ -38,7 +41,13 @@ $Extra = @($args)
 
 $Package = './cmd/pix-sandbox'
 $Binary = 'bin/pix-sandbox.exe'
-$LdFlags = "-s -w -X main.version=$Version"
+$LdFlags = '-s -w'
+if ($Version) { $LdFlags += " -X main.version=$Version" }
+
+# Docker builds strip .git (.dockerignore), leaving the version cascade
+# nothing better than a stamp — so the image keeps a dev default.
+$DockerVersion = $Version
+if (-not $DockerVersion) { $DockerVersion = 'dev' }
 
 # Native executables do not throw; check the exit code explicitly.
 function Invoke-Step {
@@ -105,13 +114,15 @@ switch ($Target) {
     'build' {
         Invoke-WithCgo '0' { go build -trimpath -ldflags $LdFlags -o $Binary $Package }
         $mb = [math]::Round((Get-Item $Binary).Length / 1MB, 1)
-        Write-Output "built $Binary ($mb MB, version $Version)"
+        $Stamp = $Version
+        if (-not $Stamp) { $Stamp = 'from VCS' }
+        Write-Output "built $Binary ($mb MB, version $Stamp)"
     }
     'docker-build' {
-        Invoke-Step { docker build --build-arg "VERSION=$Version" -t "${Image}:$Version" . }
+        Invoke-Step { docker build --build-arg "VERSION=$DockerVersion" -t "${Image}:$DockerVersion" . }
     }
     'docker-run' {
-        Invoke-Step { docker run --rm -p 8080:8080 "${Image}:$Version" }
+        Invoke-Step { docker run --rm -p 8080:8080 "${Image}:$DockerVersion" }
     }
     'tidy' { Invoke-Step { go mod tidy } }
     'fmt'  { Invoke-Step { go fmt ./... } }

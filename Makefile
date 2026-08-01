@@ -1,8 +1,14 @@
 BINARY  := pix-sandbox
 PKG     := ./cmd/pix-sandbox
-VERSION ?= dev
-LDFLAGS := -s -w -X main.version=$(VERSION)
+# Left empty on purpose: an unstamped binary resolves its version from the
+# module or the VCS commit (see main.go). Stamping "dev" here would win that
+# cascade and every local build would misreport itself on /health.
+VERSION ?=
+LDFLAGS := -s -w $(if $(VERSION),-X main.version=$(VERSION))
 IMAGE   ?= ghcr.io/arinellidu/pix-sandbox-pay
+# Docker builds strip .git (.dockerignore), leaving the cascade nothing better
+# than a stamp — so the image keeps a dev default for its tag and build arg.
+DOCKER_VERSION = $(if $(VERSION),$(VERSION),dev)
 
 .DEFAULT_GOAL := help
 
@@ -34,11 +40,11 @@ build:
 
 ## docker-build: build the distroless image
 docker-build:
-	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):$(VERSION) .
+	docker build --build-arg VERSION=$(DOCKER_VERSION) -t $(IMAGE):$(DOCKER_VERSION) .
 
 ## docker-run: run the image on :8080
 docker-run:
-	docker run --rm -p 8080:8080 $(IMAGE):$(VERSION)
+	docker run --rm -p 8080:8080 $(IMAGE):$(DOCKER_VERSION)
 
 tidy:
 	go mod tidy
