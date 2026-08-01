@@ -9,10 +9,11 @@
 .NOTES
     Same thing as:
       $env:CGO_ENABLED = '0'
-      go build -trimpath -ldflags "-s -w -X main.version=dev" -o bin/pix-sandbox.exe ./cmd/pix-sandbox
+      go build -trimpath -ldflags "-s -w" -o bin/pix-sandbox.exe ./cmd/pix-sandbox
+    With no -Version, the binary resolves its build from the VCS stamp.
 #>
 param(
-    [string]$Version = 'dev'
+    [string]$Version = ''
 )
 
 $ErrorActionPreference = 'Stop'
