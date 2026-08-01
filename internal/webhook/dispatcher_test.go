@@ -301,6 +301,46 @@ func TestCloseInterruptsPendingRetries(t *testing.T) {
 	}
 }
 
+// A request already on the wire when Close arrives is drained, not aborted:
+// the payee receives the callback and the log says delivered, not failed.
+func TestCloseDrainsInFlightDelivery(t *testing.T) {
+	received := make(chan struct{})
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(received)
+		<-release
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	rec := newRecorder()
+	d := webhook.New(rec, webhook.Config{})
+	d.Deliver("pix:E1", server.URL, map[string]any{})
+
+	select {
+	case <-received:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the attempt never landed")
+	}
+
+	// Let the endpoint answer only after Close has started waiting.
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		close(release)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := d.Close(ctx); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	outcome := rec.wait(t)
+	if outcome.typ != webhook.EventDelivered {
+		t.Errorf("event = %q, want %q — shutdown aborted a delivery in flight", outcome.typ, webhook.EventDelivered)
+	}
+}
+
 // A closed dispatcher drops new work rather than starting it.
 func TestDeliverAfterCloseIsDropped(t *testing.T) {
 	hit := make(chan struct{}, 1)

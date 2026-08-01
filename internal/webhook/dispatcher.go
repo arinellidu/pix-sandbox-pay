@@ -72,10 +72,13 @@ type Dispatcher struct {
 	client  *http.Client
 	log     *slog.Logger
 
-	// ctx is cancelled by Close: in-flight requests and pending backoffs stop
-	// waiting instead of holding shutdown open for the whole schedule.
-	ctx    context.Context
-	cancel context.CancelFunc
+	// closing is closed first on Close: pending backoffs stop waiting, but a
+	// request already on the wire is left to finish inside Close's budget.
+	// ctx is cancelled only when that budget runs out (or after the drain),
+	// aborting whatever is still in flight.
+	closing chan struct{}
+	ctx     context.Context
+	cancel  context.CancelFunc
 
 	wg     sync.WaitGroup
 	mu     sync.Mutex
@@ -104,7 +107,8 @@ func New(rec Recorder, cfg Config) *Dispatcher {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Dispatcher{
 		rec: rec, secret: []byte(secret), backoff: backoff,
-		client: client, log: log, ctx: ctx, cancel: cancel,
+		client: client, log: log,
+		closing: make(chan struct{}), ctx: ctx, cancel: cancel,
 	}
 }
 
@@ -213,13 +217,16 @@ func retryable(status int, err error) bool {
 	}
 }
 
-// wait sleeps for d, reporting false if the dispatcher closed meanwhile.
+// wait sleeps for d, reporting false if the dispatcher closed meanwhile: a
+// retry that has not started is not worth holding shutdown open for.
 func (d *Dispatcher) wait(delay time.Duration) bool {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
 	select {
 	case <-timer.C:
 		return true
+	case <-d.closing:
+		return false
 	case <-d.ctx.Done():
 		return false
 	}
@@ -243,8 +250,11 @@ func (d *Dispatcher) record(aggregate, typ, url string, attempts []attempt) {
 	}
 }
 
-// Close stops accepting deliveries, cancels the ones in flight and waits for
-// them to finish recording. It returns ctx's error if they do not.
+// Close stops accepting deliveries and pending retries, then waits for the
+// requests already on the wire to finish recording, bounded by ctx. Only when
+// that budget runs out are they aborted — cancelling first would turn every
+// callback that happened to straddle shutdown into a webhook.failed the payee
+// actually received. It returns ctx's error when the budget cut the drain.
 func (d *Dispatcher) Close(ctx context.Context) error {
 	d.mu.Lock()
 	if d.closed {
@@ -254,7 +264,7 @@ func (d *Dispatcher) Close(ctx context.Context) error {
 	d.closed = true
 	d.mu.Unlock()
 
-	d.cancel()
+	close(d.closing)
 
 	done := make(chan struct{})
 	go func() {
@@ -264,8 +274,10 @@ func (d *Dispatcher) Close(ctx context.Context) error {
 
 	select {
 	case <-done:
+		d.cancel()
 		return nil
 	case <-ctx.Done():
+		d.cancel()
 		return ctx.Err()
 	}
 }
