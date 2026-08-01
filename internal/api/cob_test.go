@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/arinellidu/pix-sandbox-pay/internal/api"
 	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
 	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
@@ -263,6 +265,39 @@ func TestCreateCobIsIdempotent(t *testing.T) {
 	}
 	if len(events) != 1 {
 		t.Errorf("events = %d, want 1", len(events))
+	}
+}
+
+// A restart rewinds the rng but not the database. The first minted txid of
+// the new run collides with the first of the old one; the server must mint
+// past the collision and create the charge asked for, not replay the old one.
+func TestCreateCobMintsPastRestartCollision(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "data", "sandbox.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+
+	run1 := newServerOn(t, st, api.Config{})
+	rec := postJSON(t, run1, "/cob", `{"valor":{"original":"10.00"},"chave":"dev@example.com"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("run 1 status = %d, want 201 (body: %s)", rec.Code, rec.Body)
+	}
+	first := decodeCob(t, rec)
+
+	run2 := newServerOn(t, st, api.Config{})
+	rec = postJSON(t, run2, "/cob", `{"valor":{"original":"25.00"},"chave":"other@example.com"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("run 2 status = %d, want 201 (body: %s)", rec.Code, rec.Body)
+	}
+	second := decodeCob(t, rec)
+
+	if second.TxID == first.TxID {
+		t.Fatalf("run 2 reused txid %q from run 1", first.TxID)
+	}
+	if second.Valor.Original != "25.00" || second.Chave != "other@example.com" {
+		t.Errorf("run 2 charge = %q/%q, want the requested 25.00/other@example.com",
+			second.Valor.Original, second.Chave)
 	}
 }
 
