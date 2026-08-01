@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 )
 
 // SandboxISPB signs every identifier the sandbox mints. 12345678 belongs to no

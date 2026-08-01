@@ -14,12 +14,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/api"
-	"github.com/arinelliquebec/pix-sandbox/internal/emv"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
-	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
-	"github.com/arinelliquebec/pix-sandbox/web/console"
+	"github.com/arinellidu/pix-sandbox-pay/internal/api"
+	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/webhook"
+	"github.com/arinellidu/pix-sandbox-pay/web/console"
 )
 
 // version is injected at build time via -ldflags.

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 )
 
 var mintedAt = time.Date(2026, 7, 31, 12, 4, 30, 0, time.UTC)

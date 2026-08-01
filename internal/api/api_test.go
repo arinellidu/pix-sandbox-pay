@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/api"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/api"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 func newServer(t *testing.T) (http.Handler, *store.Store) {

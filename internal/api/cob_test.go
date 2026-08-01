@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/emv"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 // cobBody is the response shape the API Pix specifies for a charge.

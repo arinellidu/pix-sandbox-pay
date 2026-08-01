@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 type webhookRegistration struct {

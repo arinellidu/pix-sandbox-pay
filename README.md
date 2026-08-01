@@ -23,7 +23,14 @@ docker run -p 8080:8080 ghcr.io/arinellidu/pix-sandbox-pay
 
 Or grab a binary from the [latest release](https://github.com/arinellidu/pix-sandbox-pay/releases/latest) — static and CGO-free, so there is nothing to install alongside it.
 
-Or straight from source (Go 1.26, no CGO, no external services):
+Or with Go 1.26 on your machine:
+
+```bash
+go install github.com/arinellidu/pix-sandbox-pay/cmd/pix-sandbox@latest
+pix-sandbox
+```
+
+Or straight from a checkout (no CGO, no external services):
 
 ```bash
 go run ./cmd/pix-sandbox

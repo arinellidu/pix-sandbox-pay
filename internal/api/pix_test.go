@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/api"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
-	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
+	"github.com/arinellidu/pix-sandbox-pay/internal/api"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/webhook"
 )
 
 // pixBody is the `Pix` resource the API Pix specifies.

@@ -1,4 +1,4 @@
-module github.com/arinelliquebec/pix-sandbox
+module github.com/arinellidu/pix-sandbox-pay
 
 go 1.26
 

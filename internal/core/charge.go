@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 )
 
 // Status is the lifecycle state of a charge.

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
 )
 
 // Event types written by webhook registration and delivery. The delivery ones

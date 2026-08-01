@@ -11,8 +11,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 const sampleTxID = "abc123def456ghi789jkl012mno345"

@@ -25,7 +25,7 @@ param(
     [string]$Target = 'help',
 
     [string]$Version = 'dev',
-    [string]$Image = 'ghcr.io/arinelliquebec/pix-sandbox-pay'
+    [string]$Image = 'ghcr.io/arinellidu/pix-sandbox-pay'
 )
 
 $ErrorActionPreference = 'Stop'

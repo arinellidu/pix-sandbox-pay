@@ -2,7 +2,7 @@ BINARY  := pix-sandbox
 PKG     := ./cmd/pix-sandbox
 VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
-IMAGE   ?= ghcr.io/arinelliquebec/pix-sandbox-pay
+IMAGE   ?= ghcr.io/arinellidu/pix-sandbox-pay
 
 .DEFAULT_GOAL := help
 

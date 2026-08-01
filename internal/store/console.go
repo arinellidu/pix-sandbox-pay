@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
 )
 
 // Reads that exist for the console. They are queries over the same projections

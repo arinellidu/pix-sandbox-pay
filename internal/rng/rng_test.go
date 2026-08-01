@@ -3,7 +3,7 @@ package rng_test
 import (
 	"testing"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 )
 
 // ADR-007: same seed, same sequence — that is what makes a sandbox run

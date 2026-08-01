@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 func newStore(t *testing.T) *store.Store {

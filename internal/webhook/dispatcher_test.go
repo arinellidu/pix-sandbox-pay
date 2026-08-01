@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
+	"github.com/arinellidu/pix-sandbox-pay/internal/webhook"
 )
 
 // recorder captures what the dispatcher would have written to the event log.

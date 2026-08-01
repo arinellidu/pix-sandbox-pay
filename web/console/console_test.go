@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
-	"github.com/arinelliquebec/pix-sandbox/web/console"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/web/console"
 )
 
 const txid = "abc123def456ghi789jkl012mno345"

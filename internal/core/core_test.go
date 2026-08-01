@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
 )
 
 func TestParseAmount(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/emv"
+	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
 )
 
 // bacenExample is the static BR Code printed in BACEN's manual, CRC included.

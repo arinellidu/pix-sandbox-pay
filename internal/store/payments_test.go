@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 var settledAt = time.Date(2026, 7, 31, 12, 30, 0, 0, time.UTC)

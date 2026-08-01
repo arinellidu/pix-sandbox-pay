@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-08-01
+
+### Changed
+- **Module path is now `github.com/arinellidu/pix-sandbox-pay`**, matching where the repository actually lives. It had kept the path of an earlier home, which made `go install` fail with a module-path mismatch on every version up to 0.1.2. Anyone who somehow depended on the old path must update the import; nothing else about the code changed.
+
+### Added
+- `go install github.com/arinellidu/pix-sandbox-pay/cmd/pix-sandbox@latest` in the README, now that it resolves.
+
 ## [0.1.2] — 2026-08-01
 
 ### Fixed

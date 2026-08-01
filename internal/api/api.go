@@ -13,10 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/emv"
-	"github.com/arinelliquebec/pix-sandbox/internal/rng"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
-	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
+	"github.com/arinellidu/pix-sandbox-pay/internal/emv"
+	"github.com/arinellidu/pix-sandbox-pay/internal/rng"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/webhook"
 )
 
 // DefaultBaseURL is the host a charge's location points at when none is set.

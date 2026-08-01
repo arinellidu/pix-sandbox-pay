@@ -26,8 +26,8 @@ import (
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/arinelliquebec/pix-sandbox/internal/core"
-	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinellidu/pix-sandbox-pay/internal/core"
+	"github.com/arinellidu/pix-sandbox-pay/internal/store"
 )
 
 //go:embed static
