@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-08-01
+
+### Fixed
+- Release binaries no longer report `+dirty`. The cross-compile step staged its work inside the checkout, and Go derives `vcs.modified` from `git status`, which counts untracked files — so every v0.1.4 binary claimed a modified tree it never had. Staging now happens in `$RUNNER_TEMP`, and the step fails if the build leaves the work tree changed at all.
+
 ## [0.1.4] — 2026-08-01
 
 ### Added
