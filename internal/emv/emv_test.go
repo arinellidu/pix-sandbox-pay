@@ -184,6 +184,11 @@ func TestParseRejectsMalformed(t *testing.T) {
 		{name: "truncated header", payload: "000"},
 		{name: "length past end", payload: "0099x"},
 		{name: "non numeric id", payload: "ab02xy"},
+		// Atoi accepts signed input; a negative length inverted the value
+		// slice and panicked instead of erroring.
+		{name: "negative length", payload: "00-1"},
+		{name: "negative zero length", payload: "00-0"},
+		{name: "plus signed length", payload: "00+2ab"},
 	}
 
 	for _, tt := range tests {
