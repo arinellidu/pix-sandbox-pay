@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-08-01
+
+### Fixed
+- The release job now creates the directory it cross-compiles into. `go build -o build/...` does not create its output's parent, and the loop removed that directory every iteration, so v0.1.1 published its image but no binaries. Archives are `.tar.gz` on every target, Windows included — the zip path had never been executed on the machine that checked it.
+
 ## [0.1.1] — 2026-08-01
 
 ### Added
