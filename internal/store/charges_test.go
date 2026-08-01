@@ -107,6 +107,54 @@ func TestListChargesOrdersSameSecondFractions(t *testing.T) {
 	}
 }
 
+// A database written by an older build carries trimmed RFC3339Nano stamps,
+// which sort wrongly against the fixed-width ones new rows get. Open must
+// normalize them so ORDER BY stays chronological across the upgrade.
+func TestOpenNormalizesLegacyStamps(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sandbox.db")
+	st, err := store.Open(path)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	ctx := context.Background()
+	base := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
+
+	legacy := sampleCharge("aaa123def456ghi789jkl012mno345", base) // older, whole second
+	newer := sampleCharge("bbb123def456ghi789jkl012mno345", base.Add(400*time.Millisecond))
+	for _, c := range []core.Charge{legacy, newer} {
+		if _, _, err := st.CreateCharge(ctx, c); err != nil {
+			t.Fatalf("CreateCharge(%s): %v", c.TxID, err)
+		}
+	}
+	// Regress the older row to the trimmed flavour an old build persisted:
+	// "…12:00:00Z" sorts after "…12:00:00.400000000Z", inverting the ledger.
+	if _, err := st.DB().Exec(`UPDATE charges SET created_at = ?, expires_at = ? WHERE txid = ?`,
+		"2026-07-31T12:00:00Z", "2026-07-31T13:00:00Z", legacy.TxID); err != nil {
+		t.Fatalf("forge legacy stamps: %v", err)
+	}
+	if err := st.Close(); err != nil {
+		t.Fatalf("close store: %v", err)
+	}
+
+	st, err = store.Open(path)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+
+	got, err := st.ListCharges(ctx, 10)
+	if err != nil {
+		t.Fatalf("ListCharges: %v", err)
+	}
+	if len(got) != 2 || got[0].TxID != newer.TxID {
+		t.Fatalf("order after reopen = [%s, %s], want the newer charge first",
+			got[0].TxID, got[1].TxID)
+	}
+	if !got[1].CreatedAt.Equal(base) {
+		t.Errorf("legacy created_at = %s, want %s preserved", got[1].CreatedAt, base)
+	}
+}
+
 // Event rows are stamped by the caller's injectable clock, not the host's:
 // under a frozen or advanced clock the row must agree with its own payload.
 func TestEventStampsUseCallersClock(t *testing.T) {
