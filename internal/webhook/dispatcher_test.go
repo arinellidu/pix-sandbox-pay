@@ -341,6 +341,41 @@ func TestCloseDrainsInFlightDelivery(t *testing.T) {
 	}
 }
 
+// When the drain budget runs out, the aborted delivery still writes its
+// verdict before Close returns: the process must not exit ahead of the event.
+func TestCloseBudgetExpiryStillRecordsOutcome(t *testing.T) {
+	received := make(chan struct{})
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(received)
+		<-release // hang until the test ends: the budget must expire first
+	}))
+	defer server.Close()
+	// LIFO: unblock the handler before server.Close waits on it.
+	defer close(release)
+
+	rec := newRecorder()
+	d := webhook.New(rec, webhook.Config{})
+	d.Deliver("pix:E1", server.URL, map[string]any{})
+
+	select {
+	case <-received:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the attempt never landed")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	if err := d.Close(ctx); err == nil {
+		t.Fatal("close = nil, want the budget's deadline error")
+	}
+
+	outcome := rec.wait(t)
+	if outcome.typ != webhook.EventFailed {
+		t.Errorf("event = %q, want %q recorded before Close returned", outcome.typ, webhook.EventFailed)
+	}
+}
+
 // A closed dispatcher drops new work rather than starting it.
 func TestDeliverAfterCloseIsDropped(t *testing.T) {
 	hit := make(chan struct{}, 1)

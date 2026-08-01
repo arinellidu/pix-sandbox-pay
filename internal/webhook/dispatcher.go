@@ -277,7 +277,12 @@ func (d *Dispatcher) Close(ctx context.Context) error {
 		d.cancel()
 		return nil
 	case <-ctx.Done():
+		// Budget spent: abort what is still on the wire, then wait for those
+		// goroutines to write their verdict — record() runs on its own bounded
+		// context, so this cannot hang. Returning without the wait would race
+		// process exit against the very event the abort is supposed to leave.
 		d.cancel()
+		<-done
 		return ctx.Err()
 	}
 }
