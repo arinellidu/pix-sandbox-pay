@@ -1,14 +1,22 @@
 # --- build ------------------------------------------------------------------
-FROM golang:1.26-alpine AS build
+# Pinned to the *build* platform, not the target: a multi-arch build otherwise
+# runs this whole stage under QEMU for every foreign architecture, and
+# emulating a Go compiler costs ten minutes to produce a binary that
+# cross-compiling produces in seconds. The output is static and CGO-free, so
+# there is nothing about the target that has to be present to build for it.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 
 ARG VERSION=dev
+# Supplied by buildx, once per target platform.
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
     -trimpath \
     -ldflags "-s -w -X main.version=${VERSION}" \
     -o /out/pix-sandbox ./cmd/pix-sandbox

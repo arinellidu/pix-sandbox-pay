@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+### Changed
+- The image build cross-compiles instead of emulating. The build stage is pinned to `$BUILDPLATFORM` and targets `$TARGETOS`/`$TARGETARCH`, so a foreign architecture no longer runs the Go toolchain under QEMU: the arm64 image went from 220s to 30s locally, and the release's image job should drop from roughly twelve minutes to a couple. The binary is static and CGO-free, so nothing about the target needs to be present to build for it.
+
 ## [0.1.5] — 2026-08-01
 
 ### Fixed
