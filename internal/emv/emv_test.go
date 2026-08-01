@@ -286,8 +286,10 @@ func TestPayloadStructure(t *testing.T) {
 // Truncating the description at a byte index could split a multi-byte rune;
 // the payload must stay valid UTF-8 after the cut.
 func TestPayloadDescriptionTruncatesOnRuneBoundary(t *testing.T) {
+	// A one-char key: GUI (18) + key (5) + description (4+72) is exactly the
+	// 99 chars template 26 can carry, so the cap itself is what cuts.
 	code := emv.BRCode{
-		Key:         "dev@example.com",
+		Key:         "k",
 		Description: strings.Repeat("a", 71) + "é", // byte 72 lands mid-rune
 	}
 	payload, err := code.Payload()
