@@ -1,0 +1,5 @@
+/data/
+/pix-sandbox
+/bin/
+.env
+*.db

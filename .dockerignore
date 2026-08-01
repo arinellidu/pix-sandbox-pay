@@ -1,0 +1,10 @@
+.git
+.github
+bin/
+data/
+*.db
+.env
+docs/
+README.md
+CHANGELOG.md
+Makefile

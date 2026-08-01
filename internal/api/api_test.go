@@ -1,0 +1,176 @@
+package api_test
+
+import (
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/arinelliquebec/pix-sandbox/internal/api"
+	"github.com/arinelliquebec/pix-sandbox/internal/rng"
+	"github.com/arinelliquebec/pix-sandbox/internal/store"
+)
+
+func newServer(t *testing.T) (http.Handler, *store.Store) {
+	t.Helper()
+	st, err := store.Open(filepath.Join(t.TempDir(), "data", "sandbox.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return api.New(st, rng.New(rng.DefaultSeed), log).Router(), st
+}
+
+func do(t *testing.T, h http.Handler, req *http.Request) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHealth(t *testing.T) {
+	h, _ := newServer(t)
+
+	rec := do(t, h, httptest.NewRequest(http.MethodGet, "/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"status":"ok"}` {
+		t.Errorf("body = %s, want {\"status\":\"ok\"}", got)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("content-type = %q, want application/json", ct)
+	}
+}
+
+func TestTokenFormEncoded(t *testing.T) {
+	h, st := newServer(t)
+
+	form := url.Values{
+		"grant_type": {"client_credentials"},
+		"client_id":  {"demo-psp"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rec := do(t, h, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body: %s)", rec.Code, rec.Body)
+	}
+
+	var body struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int    `json:"expires_in"`
+		Scope       string `json:"scope"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.TokenType != "Bearer" {
+		t.Errorf("token_type = %q, want Bearer", body.TokenType)
+	}
+	if !strings.HasPrefix(body.AccessToken, "sandbox_") || len(body.AccessToken) <= len("sandbox_") {
+		t.Errorf("access_token = %q, want non-empty sandbox_ token", body.AccessToken)
+	}
+	if body.ExpiresIn != 3600 {
+		t.Errorf("expires_in = %d, want 3600", body.ExpiresIn)
+	}
+	if body.Scope == "" {
+		t.Error("scope is empty")
+	}
+
+	events, err := st.EventsByAggregate(t.Context(), "oauth")
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	if len(events) != 1 || events[0].Type != "oauth.token.issued" {
+		t.Fatalf("events = %+v, want one oauth.token.issued", events)
+	}
+}
+
+func TestTokenJSONBodyAndCustomScope(t *testing.T) {
+	h, _ := newServer(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/oauth/token",
+		strings.NewReader(`{"grant_type":"client_credentials","scope":"cob.write"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := do(t, h, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body: %s)", rec.Code, rec.Body)
+	}
+
+	var body struct {
+		Scope string `json:"scope"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Scope != "cob.write" {
+		t.Errorf("scope = %q, want cob.write", body.Scope)
+	}
+}
+
+// `curl -X POST :8080/oauth/token` with no body must still work: the demo loop
+// should not require the caller to spell out the only grant there is.
+func TestTokenEmptyBody(t *testing.T) {
+	h, _ := newServer(t)
+
+	rec := do(t, h, httptest.NewRequest(http.MethodPost, "/oauth/token", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body: %s)", rec.Code, rec.Body)
+	}
+}
+
+func TestTokenRejectsOtherGrants(t *testing.T) {
+	h, _ := newServer(t)
+
+	form := url.Values{"grant_type": {"authorization_code"}}
+	req := httptest.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rec := do(t, h, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Error != "unsupported_grant_type" {
+		t.Errorf("error = %q, want unsupported_grant_type", body.Error)
+	}
+}
+
+func TestTokenRejectsMalformedJSON(t *testing.T) {
+	h, _ := newServer(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(`{`))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := do(t, h, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestUnknownRouteIs404(t *testing.T) {
+	h, _ := newServer(t)
+
+	rec := do(t, h, httptest.NewRequest(http.MethodGet, "/cob/nope", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
