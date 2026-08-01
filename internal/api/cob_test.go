@@ -382,6 +382,11 @@ func TestCreateCobValidation(t *testing.T) {
 			wantProperty: "valor.original",
 		},
 		{
+			name:         "amount zero",
+			body:         `{"valor":{"original":"0.00"},"chave":"dev@example.com"}`,
+			wantProperty: "valor.original",
+		},
+		{
 			name:         "missing chave",
 			body:         `{"valor":{"original":"10.00"}}`,
 			wantProperty: "chave",
