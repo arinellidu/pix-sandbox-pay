@@ -137,9 +137,18 @@ func (s *Server) handleCreateCob(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	status := http.StatusOK
-	if created {
-		status = http.StatusCreated
+	status := http.StatusCreated
+	if !created {
+		status = http.StatusOK
+		// A replay reads the stored charge, and reads settle a pending expiry
+		// first: an EXPIRADA in the response must be a recorded transition in
+		// the log, never an inference (INV-3).
+		stored, err = s.store.ExpireCharge(r.Context(), stored.TxID, s.now())
+		if err != nil {
+			s.log.Error("expire charge", "txid", charge.TxID, "err", err)
+			internalError(w)
+			return
+		}
 	}
 	writeJSON(w, status, s.cobResponse(stored, s.now()))
 }

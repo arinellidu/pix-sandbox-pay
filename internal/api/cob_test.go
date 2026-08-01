@@ -270,6 +270,38 @@ func TestCreateCobIsIdempotent(t *testing.T) {
 	}
 }
 
+// Replaying a create after the charge's window closed is a read like any
+// other: the EXPIRADA it reports must land in the log as cob.expired, not be
+// inferred by the response (INV-3).
+func TestReplayOfExpiredChargeLogsTransition(t *testing.T) {
+	now := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
+	h, st := newServerAt(t, func() time.Time { return now })
+
+	const body = `{"calendario":{"expiracao":60},"valor":{"original":"10.00"},"chave":"dev@example.com"}`
+	rec := putJSON(t, h, "/cob/"+validTxID, body)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want 201 (body: %s)", rec.Code, rec.Body)
+	}
+
+	now = now.Add(2 * time.Minute)
+
+	rec = putJSON(t, h, "/cob/"+validTxID, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("replay status = %d, want 200 (body: %s)", rec.Code, rec.Body)
+	}
+	if got := decodeCob(t, rec); got.Status != "EXPIRADA" {
+		t.Errorf("replay status = %q, want EXPIRADA", got.Status)
+	}
+
+	events, err := st.EventsByAggregate(t.Context(), store.ChargeAggregate(validTxID))
+	if err != nil {
+		t.Fatalf("EventsByAggregate: %v", err)
+	}
+	if len(events) != 2 || events[1].Type != store.EventChargeExpired {
+		t.Fatalf("events = %+v, want cob.created then cob.expired", events)
+	}
+}
+
 // A restart rewinds the rng but not the database. The first minted txid of
 // the new run collides with the first of the old one; the server must mint
 // past the collision and create the charge asked for, not replay the old one.
