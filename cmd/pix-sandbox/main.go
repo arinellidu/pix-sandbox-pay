@@ -19,6 +19,7 @@ import (
 	"github.com/arinelliquebec/pix-sandbox/internal/rng"
 	"github.com/arinelliquebec/pix-sandbox/internal/store"
 	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
+	"github.com/arinelliquebec/pix-sandbox/web/console"
 )
 
 // version is injected at build time via -ldflags.
@@ -69,11 +70,14 @@ func run() error {
 		"seed", src.Seed(),
 	)
 
+	ui := console.New(st, console.Config{Version: version, Seed: src.Seed(), Log: log})
+
 	apiServer := api.New(st, src, log, api.Config{
 		BaseURL:      cfg.baseURL,
 		MerchantName: cfg.merchantName,
 		MerchantCity: cfg.merchantCity,
 		Webhook:      webhook.Config{Secret: cfg.webhookSecret},
+		Console:      ui.Router(),
 	})
 
 	srv := &http.Server{

@@ -1,5 +1,8 @@
 # pix-sandbox — Design Document
 
+> This is the **engineering** spec: architecture, state machines, invariants, phases.
+> The console's **visual** system is recorded separately in [/DESIGN.md](../DESIGN.md).
+
 > **Status:** Draft v0.1 · 2026-07-31
 > **Owner:** Patrick Arinelli
 > **One-liner:** A drop-in Pix emulator — the full instant-payment lifecycle (charge → QR → settlement → refund → webhook) in a single binary, for engineering teams who need to build against Pix without a bank.

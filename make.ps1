@@ -20,12 +20,12 @@
     fine; they do not make a script advanced.
 #>
 param(
-    [ValidateSet('run', 'test', 'test-race', 'build', 'docker-build', 'docker-run',
+    [ValidateSet('run', 'generate', 'test', 'test-race', 'build', 'docker-build', 'docker-run',
                  'tidy', 'fmt', 'vet', 'lint', 'clean', 'help')]
     [string]$Target = 'help',
 
     [string]$Version = 'dev',
-    [string]$Image = 'ghcr.io/arinelliquebec/pix-sandbox'
+    [string]$Image = 'ghcr.io/arinelliquebec/pix-sandbox-pay'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,6 +64,7 @@ function Show-Help {
 Targets (mirror of the Makefile):
 
   run           start the sandbox on :8080          go run ./cmd/pix-sandbox
+  generate      rebuild the console templates       go tool templ generate
   test          run the test suite                  go test ./...
   test-race     same, under the race detector       needs CGO and a C toolchain
   build         static CGO-free binary in .\bin
@@ -87,6 +88,10 @@ Every flag the sandbox and `go test` take is named anyway.
 switch ($Target) {
     'run' {
         Invoke-Step { go run $Package @Extra }
+    }
+    'generate' {
+        # Commit whatever this writes: the image builds without a generator.
+        Invoke-Step { go tool templ generate @Extra }
     }
     'test' {
         Invoke-Step { go test ./... @Extra }

@@ -1,0 +1,848 @@
+/* pix-sandbox console — concretismo grid.
+   Ink ground, offset-paper ink, hairline rules, flat fields of colour.
+   Every asset here ships inside the binary: the console makes no network
+   request, ever. */
+
+@font-face {
+	font-family: 'Archivo';
+	src: url('/console/static/fonts/archivo-latin.woff2') format('woff2');
+	font-weight: 400 700;
+	font-display: swap;
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+		U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212,
+		U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Archivo';
+	src: url('/console/static/fonts/archivo-latin-ext.woff2') format('woff2');
+	font-weight: 400 700;
+	font-display: swap;
+	unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+		U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+		U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+	font-family: 'Fragment Mono';
+	src: url('/console/static/fonts/fragment-mono-latin.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+		U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212,
+		U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Fragment Mono';
+	src: url('/console/static/fonts/fragment-mono-latin-ext.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+	unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+		U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+		U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+	--ink: #0b0b0b;
+	--ink-raised: #131313;
+	--paper: #edeae3;
+	--dim: #96918a;
+	/* The rule is the form here, so it has to be visible at a hairline: at
+	   #2b2a28 the grid that defines the page sat below the threshold of sight. */
+	--rule: #3b3934;
+	--rule-strong: #56534e;
+	--red: #c81e14;
+	--blue: #1b3fd4;
+	--slate: #4a463f;
+
+	--sans: 'Archivo', system-ui, sans-serif;
+	--mono: 'Fragment Mono', ui-monospace, monospace;
+
+	--rail-w: 17rem;
+	--gutter: clamp(1.25rem, 3vw, 2.75rem);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	background: var(--ink);
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--ink);
+	color: var(--paper);
+	font-family: var(--sans);
+	font-size: 15px;
+	line-height: 1.45;
+	font-synthesis-weight: none;
+}
+
+.mono {
+	font-family: var(--mono);
+	font-feature-settings: 'liga' 0;
+}
+
+.select {
+	user-select: all;
+}
+
+a {
+	color: inherit;
+}
+
+h1,
+h2,
+h3 {
+	margin: 0;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+}
+
+:focus-visible {
+	outline: 2px solid var(--paper);
+	outline-offset: 2px;
+}
+
+/* ---- the sheet: margin and field ---------------------------------- */
+
+.sheet {
+	display: grid;
+	grid-template-columns: var(--rail-w) minmax(0, 1fr);
+	min-height: 100vh;
+	min-width: 0;
+}
+
+.rail {
+	position: sticky;
+	top: 0;
+	align-self: start;
+	padding: var(--gutter);
+	border-right: 1px solid var(--rule);
+	min-height: 100vh;
+}
+
+.rail__name {
+	display: block;
+	font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+	font-weight: 700;
+	letter-spacing: -0.035em;
+	line-height: 0.95;
+	text-decoration: none;
+}
+
+.rail__note {
+	margin: 0.9rem 0 0;
+	padding-top: 0.9rem;
+	border-top: 1px solid var(--rule);
+	max-width: 22ch;
+	color: var(--dim);
+	font-size: 0.8125rem;
+	line-height: 1.4;
+}
+
+.rail__facts,
+.rail__counts {
+	margin: 1.75rem 0 0;
+	padding: 0;
+	display: grid;
+	gap: 0.4rem;
+}
+
+.rail__counts {
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--rule);
+}
+
+/* Long values (the seed is twenty digits) get the full column rather than a
+   right-aligned cell that wraps into two ragged lines. */
+.rail__facts .fact {
+	display: block;
+}
+
+.count {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: baseline;
+	gap: 0.75rem;
+}
+
+.rail dt {
+	color: var(--dim);
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.rail dd {
+	margin: 0;
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+
+.rail__counts dd {
+	text-align: right;
+}
+
+.rail__facts dd {
+	margin-top: 0.15rem;
+}
+
+.count--total dd {
+	color: var(--paper);
+}
+
+.main {
+	padding: var(--gutter);
+	min-width: 0;
+}
+
+.page-title,
+.timeline h2,
+.pix h2,
+.brcode h2 {
+	font-size: 0.8125rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--dim);
+}
+
+.page-title {
+	margin-bottom: 1.1rem;
+}
+
+.back {
+	display: inline-block;
+	margin-bottom: 1.4rem;
+	color: var(--dim);
+	font-size: 0.8125rem;
+	letter-spacing: 0.02em;
+	text-decoration: none;
+	border-bottom: 1px solid var(--rule);
+	padding-bottom: 0.15rem;
+}
+
+.back:hover {
+	color: var(--paper);
+	border-bottom-color: var(--paper);
+}
+
+/* ---- ledger: identical modules, varying by rule -------------------- */
+
+.ledger {
+	border-top: 3px solid var(--paper);
+}
+
+.ledger__head,
+.row {
+	display: grid;
+	grid-template-columns:
+		minmax(8rem, 13rem) minmax(5rem, 7rem) minmax(9rem, 1fr)
+		minmax(10rem, 12rem) 9.5rem;
+	align-items: center;
+	gap: 1rem;
+}
+
+.ledger__head {
+	padding: 0.55rem 0;
+	border-bottom: 1px solid var(--rule-strong);
+	color: var(--dim);
+	font-size: 0.6875rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.col-amount {
+	text-align: right;
+}
+
+.col-status {
+	text-align: center;
+}
+
+.row {
+	padding: 0.7rem 0;
+	border-bottom: 1px solid var(--rule);
+	color: inherit;
+	text-decoration: none;
+}
+
+.row:hover {
+	background: var(--ink-raised);
+}
+
+.row:hover .row__txid {
+	color: var(--paper);
+}
+
+.row__txid {
+	font-size: 0.8125rem;
+	color: var(--dim);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.row__amount {
+	text-align: right;
+	font-size: 1rem;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The unit rides with the figure only where the column head is gone. */
+.row__unit {
+	display: none;
+	margin-left: 0.35rem;
+	color: var(--dim);
+	font-size: 0.6875rem;
+	letter-spacing: 0.08em;
+}
+
+.row__chave {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.875rem;
+}
+
+.row__time {
+	color: var(--dim);
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---- status: a flat field of ink, never colour alone ---------------- */
+
+.status {
+	display: block;
+	padding: 0.3rem 0.5rem;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-align: center;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.status--ativa {
+	color: var(--paper);
+	box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.status--concluida {
+	background: var(--blue);
+	color: var(--paper);
+}
+
+.status--expirada {
+	background: var(--red);
+	color: var(--paper);
+}
+
+.status--removida {
+	background: var(--slate);
+	color: var(--paper);
+}
+
+.status--lg {
+	display: inline-block;
+	padding: 0.4rem 0.9rem;
+	font-size: 0.75rem;
+}
+
+/* The one authored moment: a charge that arrived since the last poll is
+   printed on — the colour field wipes across, the way a press lays ink. */
+@keyframes ink-in {
+	from {
+		clip-path: inset(0 100% 0 0);
+	}
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+@keyframes rule-in {
+	from {
+		border-bottom-color: var(--paper);
+	}
+	to {
+		border-bottom-color: var(--rule);
+	}
+}
+
+.row--fresh {
+	animation: rule-in 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.row--fresh .status {
+	animation: ink-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.row--fresh,
+	.row--fresh .status {
+		animation: none;
+	}
+}
+
+/* ---- empty ---------------------------------------------------------- */
+
+.empty {
+	padding: 2.5rem 0 0;
+	max-width: 68ch;
+}
+
+.empty__lead {
+	margin: 0;
+	font-size: 1.125rem;
+	letter-spacing: -0.01em;
+}
+
+.empty__cmd {
+	margin: 1.25rem 0 0;
+	padding: 1rem 1.1rem;
+	border-left: 1px solid var(--rule-strong);
+	background: var(--ink-raised);
+	color: var(--paper);
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	overflow-x: auto;
+	white-space: pre;
+}
+
+.empty__cmd code {
+	font: inherit;
+}
+
+.empty__hint {
+	margin: 1rem 0 0;
+	color: var(--dim);
+	font-size: 0.875rem;
+}
+
+/* ---- charge ---------------------------------------------------------- */
+
+.charge {
+	padding-bottom: 1.75rem;
+	border-bottom: 3px solid var(--paper);
+}
+
+.charge__amount {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	font-size: clamp(2.75rem, 8vw, 5rem);
+	font-weight: 700;
+	letter-spacing: -0.045em;
+	line-height: 0.9;
+	font-variant-numeric: tabular-nums;
+}
+
+.charge__unit {
+	font-size: 0.8125rem;
+	font-weight: 400;
+	letter-spacing: 0.1em;
+	color: var(--dim);
+}
+
+.charge .status--lg {
+	margin-top: 1rem;
+}
+
+/* Cells carry their own rules, so a half-filled last row leaves the sheet
+   blank rather than showing a phantom cell where the grid's ground would be. */
+/* A fixed track count, not auto-fit: every block here has exactly three narrow
+   facts, so the rows always fill and the perimeter closes. auto-fit left a
+   half-drawn box whose hairline stopped mid-row, which reads as a fault. */
+.facts {
+	margin: 1.75rem 0 0;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	border-top: 1px solid var(--rule);
+	border-left: 1px solid var(--rule);
+}
+
+.facts .fact {
+	display: block;
+	padding: 0.75rem 0.9rem;
+	border-right: 1px solid var(--rule);
+	border-bottom: 1px solid var(--rule);
+}
+
+.fact--wide {
+	grid-column: 1 / -1;
+}
+
+.facts dt {
+	color: var(--dim);
+	font-size: 0.6875rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.facts dd {
+	margin: 0.3rem 0 0;
+	font-size: 0.875rem;
+	overflow-wrap: anywhere;
+}
+
+.pix,
+.brcode,
+.timeline {
+	margin-top: 2.5rem;
+}
+
+.brcode__payload {
+	margin: 0.9rem 0 0;
+	padding: 1rem 1.1rem;
+	background: var(--ink-raised);
+	color: var(--paper);
+	font-size: 0.8125rem;
+	line-height: 1.7;
+	overflow-wrap: anywhere;
+}
+
+/* ---- timeline: serial modules, stepping right by rule ---------------- */
+
+.timeline__note {
+	margin: 0.75rem 0 1.75rem;
+	max-width: 66ch;
+	color: var(--dim);
+	font-size: 0.875rem;
+}
+
+.events {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--rule-strong);
+}
+
+.event {
+	display: grid;
+	grid-template-columns: 3.25rem minmax(0, 1fr) 6rem;
+	align-items: baseline;
+	gap: 0.75rem 1rem;
+	padding: 1rem 0 1.1rem;
+	border-bottom: 1px solid var(--rule);
+}
+
+.event--step-1 {
+	padding-left: 2.5rem;
+}
+
+.event--step-2 {
+	padding-left: 5rem;
+}
+
+/* The log id doubles as the transition's colour field: the serial number is
+   printed in the ink the event deserves, so the kind of change reads before
+   the words do — and the field is a field, not a stripe on a card. */
+.event__id {
+	justify-self: start;
+	min-width: 2.25rem;
+	padding: 0.15rem 0.4rem;
+	color: var(--dim);
+	font-size: 0.75rem;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.event--settled .event__id {
+	background: var(--blue);
+	color: var(--paper);
+}
+
+.event--failed .event__id {
+	background: var(--red);
+	color: var(--paper);
+}
+
+.event--refund .event__id {
+	background: var(--paper);
+	color: var(--ink);
+}
+
+.event__type {
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	overflow-wrap: anywhere;
+}
+
+.event__at {
+	color: var(--dim);
+	font-size: 0.75rem;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Wide enough that a timestamp or an e2eId sits on one line: a value broken
+   mid-token is a value the reader has to reassemble. */
+.event__payload {
+	grid-column: 2 / -1;
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+	gap: 0.35rem 2rem;
+}
+
+.pair {
+	display: grid;
+	grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr);
+	gap: 0.75rem;
+	font-size: 0.75rem;
+	line-height: 1.5;
+}
+
+.pair dt {
+	color: var(--dim);
+}
+
+.pair dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+/* A structured value gets the whole row and keeps its own line breaks: a JSON
+   array squeezed into a column wraps into the neighbour and loses its shape. */
+.pair--block {
+	grid-column: 1 / -1;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.25rem;
+}
+
+.pair--block dd {
+	padding: 0.5rem 0.7rem;
+	background: var(--ink-raised);
+	white-space: pre-wrap;
+	overflow-wrap: normal;
+	overflow-x: auto;
+}
+
+/* The field opens with a heavy rule, so it closes with one: a ledger of four
+   rows must still read as a finished sheet, not as a page that stopped. */
+.ledger {
+	border-bottom: 3px solid var(--paper);
+}
+
+.ledger .row:last-child {
+	border-bottom: 0;
+}
+
+.ledger__foot {
+	margin: 1.1rem 0 0;
+	max-width: 62ch;
+	color: var(--dim);
+	font-size: 0.8125rem;
+}
+
+/* ---- connection state ------------------------------------------------ */
+
+.rail__state {
+	margin: 0.9rem 0 0;
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+}
+
+.rail__live {
+	color: var(--dim);
+}
+
+.rail__lost {
+	display: none;
+	padding: 0.2rem 0.45rem;
+	background: var(--red);
+	color: var(--paper);
+	font-weight: 600;
+}
+
+.is-offline .rail__live {
+	display: none;
+}
+
+.is-offline .rail__lost {
+	display: inline-block;
+}
+
+/* ---- timeline legend and column heads --------------------------------- */
+
+.legend {
+	margin: 0 0 1.25rem;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 1.5rem;
+	color: var(--dim);
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+}
+
+.legend li {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.legend__ink {
+	width: 1.5rem;
+	height: 0.75rem;
+}
+
+.legend__ink--settled {
+	background: var(--blue);
+}
+
+.legend__ink--refund {
+	background: var(--paper);
+}
+
+.legend__ink--failed {
+	background: var(--red);
+}
+
+.events__head {
+	display: grid;
+	grid-template-columns: 3.25rem minmax(0, 1fr) 6rem;
+	gap: 1rem;
+	padding-bottom: 0.5rem;
+	color: var(--dim);
+	font-size: 0.6875rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.events__head-time {
+	text-align: right;
+}
+
+.daybreak {
+	padding: 0.55rem 0;
+	border-bottom: 1px solid var(--rule);
+	color: var(--dim);
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+}
+
+/* ---- narrow ---------------------------------------------------------- */
+
+@media (max-width: 60rem) {
+	.sheet {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.rail {
+		position: static;
+		min-height: 0;
+		border-right: 0;
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.rail__facts,
+	.rail__counts {
+		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		gap: 0.5rem 1.5rem;
+	}
+
+	.rail__note {
+		max-width: none;
+	}
+
+	.ledger__head,
+	.events__head {
+		display: none;
+	}
+
+	.row__unit {
+		display: inline;
+	}
+
+	.facts {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.row {
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.35rem 1rem;
+		padding: 0.85rem 0;
+	}
+
+	.row__amount {
+		text-align: left;
+		grid-row: 2;
+	}
+
+	.row__chave {
+		grid-row: 3;
+		grid-column: 1 / -1;
+		color: var(--dim);
+	}
+
+	.row__time {
+		grid-row: 2;
+		grid-column: 2;
+		text-align: right;
+	}
+
+	.row .status {
+		grid-row: 1;
+		grid-column: 2;
+	}
+
+	.event {
+		grid-template-columns: 2.75rem minmax(0, 1fr);
+	}
+
+	.event__at {
+		grid-row: 2;
+		grid-column: 2;
+		text-align: left;
+	}
+
+	/* One column, label over value: a 21rem minimum would push the sheet wider
+	   than the screen, and a page that scrolls sideways has already failed. */
+	.event__payload {
+		grid-column: 1 / -1;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.5rem;
+	}
+
+	.pair {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.1rem;
+	}
+
+	/* At this width the block owns the whole sheet, so it wraps instead of
+	   scrolling: a value cut off at the edge with no cue is worse than a
+	   value that takes two lines. */
+	.pair--block dd {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		overflow-x: visible;
+	}
+
+	/* Two rem of indent is not a step anyone can see, so at this width the
+	   step is carried by a rule at the module's margin instead. */
+	.event--step-1,
+	.event--step-2 {
+		border-left: 1px solid var(--rule-strong);
+	}
+
+	.event--step-1 {
+		padding-left: 1rem;
+	}
+
+	.event--step-2 {
+		padding-left: 2rem;
+		box-shadow: inset 1rem 0 0 -0.9375rem var(--rule-strong);
+	}
+}

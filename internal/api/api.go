@@ -35,6 +35,9 @@ type Config struct {
 	// Webhook tunes outbound callback delivery. The zero value signs with
 	// webhook.DefaultSecret and retries on the default schedule.
 	Webhook webhook.Config
+	// Console is the embedded UI, mounted at /console. Left nil the API runs
+	// headless, which is what the handler tests want.
+	Console http.Handler
 }
 
 func (c Config) withDefaults() Config {
@@ -110,6 +113,10 @@ func (s *Server) Router() http.Handler {
 
 	// Sandbox-only: the payer's side of the loop, which has no BACEN endpoint.
 	r.Post("/sandbox/pay", s.handleSandboxPay)
+
+	if s.cfg.Console != nil {
+		r.Mount("/console", s.cfg.Console)
+	}
 
 	return r
 }

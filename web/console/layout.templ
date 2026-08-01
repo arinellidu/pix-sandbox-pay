@@ -1,0 +1,86 @@
+package console
+
+// directionContract survives into the emitted markup on purpose: the decision
+// this surface was built against should be auditable from the page itself.
+const directionContract = `<!--
+THESIS: an append-only log is a serial progression, so the console is set as one — identical modules varying by rule — not a dashboard of cards, pills and sparklines.
+OWN-WORLD: ink ground, offset-paper ink, hairline rules, flat fields of concrete red and blue; Archivo for voice, Fragment Mono for data; no radius, no shadow, no icon.
+STORY: the reader asks what happened to this charge and leaves holding the recorded sequence that answers it.
+FIRST VIEWPORT: the left margin carries the masthead, the run's seed and the counts; the ledger fills the right as stacked modules, status printed as a flat colour field at the module's end.
+FORM: concretismo — Amilcar de Castro's Jornal do Brasil grid; candidate 7 of 7; seed key c7b303d7.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->`
+
+templ layout(title string, rail railView) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+			<meta name="color-scheme" content="dark"/>
+			<link rel="icon" href={ asset("favicon.svg") } type="image/svg+xml"/>
+			<link rel="stylesheet" href={ asset("console.css") }/>
+			<script src={ asset("htmx.min.js") } defer></script>
+			<script src={ asset("console.js") } defer></script>
+		</head>
+		<body>
+			@templ.Raw(directionContract)
+			<div class="sheet">
+				@masthead(rail)
+				<main class="main">
+					{ children... }
+				</main>
+			</div>
+		</body>
+	</html>
+}
+
+// masthead is the sheet's left margin: the name, the run's own facts, and the
+// one sentence that explains why nothing here is clickable but a charge.
+templ masthead(rail railView) {
+	<div class="rail">
+		<a class="rail__name" href="/console">pix-sandbox</a>
+		<p class="rail__note">Read-only. The terminal acts; this watches.</p>
+		if rail.Polling {
+			<p class="rail__state">
+				<span class="rail__live">Live · polling every 2s</span>
+				<span class="rail__lost">No answer from the sandbox</span>
+			</p>
+		}
+		<dl class="rail__facts">
+			<div class="fact">
+				<dt>seed</dt>
+				<dd class="mono">{ rail.Seed }</dd>
+			</div>
+			<div class="fact">
+				<dt>version</dt>
+				<dd class="mono">{ rail.Version }</dd>
+			</div>
+		</dl>
+		if rail.HasCounts {
+			<dl class="rail__counts">
+				<div class="count">
+					<dt>charges</dt>
+					<dd class="mono">{ rail.Charges }</dd>
+				</div>
+				<div class="count">
+					<dt>pix</dt>
+					<dd class="mono">{ rail.Payments }</dd>
+				</div>
+				<div class="count">
+					<dt>devoluções</dt>
+					<dd class="mono">{ rail.Refunds }</dd>
+				</div>
+				<div class="count">
+					<dt>webhooks</dt>
+					<dd class="mono">{ rail.Webhooks }</dd>
+				</div>
+				<div class="count count--total">
+					<dt>events</dt>
+					<dd class="mono">{ rail.Events }</dd>
+				</div>
+			</dl>
+		}
+	</div>
+}

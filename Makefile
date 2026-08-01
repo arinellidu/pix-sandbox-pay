@@ -2,11 +2,11 @@ BINARY  := pix-sandbox
 PKG     := ./cmd/pix-sandbox
 VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
-IMAGE   ?= ghcr.io/arinelliquebec/pix-sandbox
+IMAGE   ?= ghcr.io/arinelliquebec/pix-sandbox-pay
 
 .DEFAULT_GOAL := help
 
-.PHONY: help run test test-race build docker-build docker-run tidy fmt vet lint clean
+.PHONY: help run generate test test-race build docker-build docker-run tidy fmt vet lint clean
 
 ## help: list the targets
 help:
@@ -15,6 +15,10 @@ help:
 ## run: start the sandbox on :8080
 run:
 	go run $(PKG)
+
+## generate: rebuild the console's templates (commit what it writes)
+generate:
+	go tool templ generate
 
 ## test: run the full test suite
 test:
