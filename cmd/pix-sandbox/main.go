@@ -18,6 +18,7 @@ import (
 	"github.com/arinelliquebec/pix-sandbox/internal/emv"
 	"github.com/arinelliquebec/pix-sandbox/internal/rng"
 	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
 )
 
 // version is injected at build time via -ldflags.
@@ -30,6 +31,9 @@ type config struct {
 	baseURL      string
 	merchantName string
 	merchantCity string
+	// webhookSecret comes from the environment only: a secret never belongs
+	// on a command line, where every process on the box can read it.
+	webhookSecret string
 }
 
 func main() {
@@ -65,15 +69,16 @@ func run() error {
 		"seed", src.Seed(),
 	)
 
-	handler := api.New(st, src, log, api.Config{
+	apiServer := api.New(st, src, log, api.Config{
 		BaseURL:      cfg.baseURL,
 		MerchantName: cfg.merchantName,
 		MerchantCity: cfg.merchantCity,
-	}).Router()
+		Webhook:      webhook.Config{Secret: cfg.webhookSecret},
+	})
 
 	srv := &http.Server{
 		Addr:              cfg.addr,
-		Handler:           handler,
+		Handler:           apiServer.Router(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -99,17 +104,23 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+	// Webhooks outlive the request that triggered them, so they are drained
+	// after the listener closes rather than with it.
+	return apiServer.Close(shutdownCtx)
 }
 
 func loadConfig() (config, error) {
 	cfg := config{
-		addr:         envOr("PIX_SANDBOX_ADDR", ":8080"),
-		dbPath:       envOr("PIX_SANDBOX_DB", "./data/sandbox.db"),
-		seed:         rng.DefaultSeed,
-		baseURL:      envOr("PIX_SANDBOX_BASE_URL", api.DefaultBaseURL),
-		merchantName: envOr("PIX_SANDBOX_MERCHANT_NAME", emv.DefaultMerchantName),
-		merchantCity: envOr("PIX_SANDBOX_MERCHANT_CITY", emv.DefaultMerchantCity),
+		addr:          envOr("PIX_SANDBOX_ADDR", ":8080"),
+		dbPath:        envOr("PIX_SANDBOX_DB", "./data/sandbox.db"),
+		seed:          rng.DefaultSeed,
+		baseURL:       envOr("PIX_SANDBOX_BASE_URL", api.DefaultBaseURL),
+		merchantName:  envOr("PIX_SANDBOX_MERCHANT_NAME", emv.DefaultMerchantName),
+		merchantCity:  envOr("PIX_SANDBOX_MERCHANT_CITY", emv.DefaultMerchantCity),
+		webhookSecret: envOr("WEBHOOK_SECRET", webhook.DefaultSecret),
 	}
 	if raw := os.Getenv("PIX_SANDBOX_SEED"); raw != "" {
 		seed, err := strconv.ParseUint(raw, 10, 64)

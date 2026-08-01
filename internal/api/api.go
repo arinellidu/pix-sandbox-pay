@@ -1,9 +1,10 @@
 // Package api exposes the HTTP surface: the BACEN-compatible API Pix
-// endpoints plus the sandbox-only controls. S1 ships the charge (`cob`)
-// resource and its BR Code; payments and webhooks land next.
+// endpoints plus the sandbox-only controls. S2 closes the demo loop — charge,
+// BR Code, payment, refund and the signed callback that announces them.
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/arinelliquebec/pix-sandbox/internal/emv"
 	"github.com/arinelliquebec/pix-sandbox/internal/rng"
 	"github.com/arinelliquebec/pix-sandbox/internal/store"
+	"github.com/arinelliquebec/pix-sandbox/internal/webhook"
 )
 
 // DefaultBaseURL is the host a charge's location points at when none is set.
@@ -30,6 +32,9 @@ type Config struct {
 	// Now supplies the current time. Left nil it is time.Now; the virtual
 	// clock will replace it wholesale in a later phase.
 	Now func() time.Time
+	// Webhook tunes outbound callback delivery. The zero value signs with
+	// webhook.DefaultSecret and retries on the default schedule.
+	Webhook webhook.Config
 }
 
 func (c Config) withDefaults() Config {
@@ -50,16 +55,31 @@ func (c Config) withDefaults() Config {
 
 // Server holds the dependencies shared by the handlers.
 type Server struct {
-	store *store.Store
-	rng   *rng.Source
-	log   *slog.Logger
-	cfg   Config
+	store   *store.Store
+	rng     *rng.Source
+	log     *slog.Logger
+	webhook *webhook.Dispatcher
+	cfg     Config
 }
 
-// New builds a Server.
+// New builds a Server. Close it to drain webhook deliveries still in flight.
 func New(st *store.Store, src *rng.Source, log *slog.Logger, cfg Config) *Server {
-	return &Server{store: st, rng: src, log: log, cfg: cfg.withDefaults()}
+	cfg = cfg.withDefaults()
+	if cfg.Webhook.Log == nil {
+		cfg.Webhook.Log = log
+	}
+	return &Server{
+		store:   st,
+		rng:     src,
+		log:     log,
+		webhook: webhook.New(st, cfg.Webhook),
+		cfg:     cfg,
+	}
 }
+
+// Close stops the webhook dispatcher and waits for deliveries in flight,
+// bounded by ctx.
+func (s *Server) Close(ctx context.Context) error { return s.webhook.Close(ctx) }
 
 // now returns the current instant in UTC.
 func (s *Server) now() time.Time { return s.cfg.Now().UTC() }
@@ -81,6 +101,15 @@ func (s *Server) Router() http.Handler {
 	r.Put("/cob/{txid}", s.handleCreateCob)
 	r.Get("/cob/{txid}", s.handleGetCob)
 	r.Get("/cob/{txid}/qrcode", s.handleGetCobQRCode)
+
+	r.Get("/pix/{e2eid}", s.handleGetPix)
+	r.Put("/pix/{e2eid}/devolucao/{id}", s.handleCreateDevolucao)
+
+	r.Put("/webhook/{chave}", s.handlePutWebhook)
+	r.Get("/webhook/{chave}", s.handleGetWebhook)
+
+	// Sandbox-only: the payer's side of the loop, which has no BACEN endpoint.
+	r.Post("/sandbox/pay", s.handleSandboxPay)
 
 	return r
 }

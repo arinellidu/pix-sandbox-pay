@@ -544,7 +544,7 @@ func TestGetCobQRCodeNotFound(t *testing.T) {
 func TestGetCobExpires(t *testing.T) {
 	base := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
 	now := base
-	h, st, _ := newServerAt(t, func() time.Time { return now })
+	h, st := newServerAt(t, func() time.Time { return now })
 
 	rec := putJSON(t, h, "/cob/"+validTxID,
 		`{"calendario":{"expiracao":3600},"valor":{"original":"10.00"},"chave":"dev@example.com"}`)
@@ -586,7 +586,7 @@ func TestGetCobExpires(t *testing.T) {
 func TestExpiredChargeKeepsItsPayload(t *testing.T) {
 	base := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
 	now := base
-	h, _, _ := newServerAt(t, func() time.Time { return now })
+	h, _ := newServerAt(t, func() time.Time { return now })
 
 	created := decodeCob(t, putJSON(t, h, "/cob/"+validTxID,
 		`{"calendario":{"expiracao":60},"valor":{"original":"10.00"},"chave":"dev@example.com"}`))
