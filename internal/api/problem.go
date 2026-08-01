@@ -91,6 +91,11 @@ func notFoundWebhook(w http.ResponseWriter, detail string) {
 		"Webhook não encontrado.", detail, nil)
 }
 
+func payloadTooLarge(w http.ResponseWriter) {
+	writeProblem(w, http.StatusRequestEntityTooLarge, problemRequisicaoInvalida,
+		"Requisição inválida.", "request body is too large", nil)
+}
+
 func internalError(w http.ResponseWriter) {
 	writeProblem(w, http.StatusInternalServerError, problemErroInterno,
 		"Erro interno do servidor.", "", nil)

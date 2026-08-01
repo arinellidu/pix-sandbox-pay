@@ -87,7 +87,7 @@ type qrCodeResponse struct {
 func (s *Server) handleCreateCob(w http.ResponseWriter, r *http.Request) {
 	var req cobRequest
 	if err := decodeJSON(r, &req); err != nil {
-		malformedRequest(w, err.Error())
+		bodyError(w, err)
 		return
 	}
 
@@ -351,4 +351,14 @@ func decodeJSON(r *http.Request, dst any) error {
 		return fmt.Errorf("malformed JSON body: %w", err)
 	}
 	return nil
+}
+
+// bodyError answers a failed decodeJSON: 413 when the router's body cap cut
+// the read short, 400 for anything else.
+func bodyError(w http.ResponseWriter, err error) {
+	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		payloadTooLarge(w)
+		return
+	}
+	malformedRequest(w, err.Error())
 }

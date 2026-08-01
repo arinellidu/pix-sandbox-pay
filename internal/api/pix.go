@@ -59,7 +59,7 @@ type payRequest struct {
 func (s *Server) handleSandboxPay(w http.ResponseWriter, r *http.Request) {
 	var req payRequest
 	if err := decodeJSON(r, &req); err != nil {
-		malformedRequest(w, err.Error())
+		bodyError(w, err)
 		return
 	}
 
@@ -148,7 +148,7 @@ func (s *Server) handleCreateDevolucao(w http.ResponseWriter, r *http.Request) {
 
 	var req devolucaoRequest
 	if err := decodeJSON(r, &req); err != nil {
-		malformedRequest(w, err.Error())
+		bodyError(w, err)
 		return
 	}
 	if req.Valor == "" {

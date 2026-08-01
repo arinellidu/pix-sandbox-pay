@@ -35,7 +35,7 @@ func (s *Server) handlePutWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var req webhookRequest
 	if err := decodeJSON(r, &req); err != nil {
-		malformedRequest(w, err.Error())
+		bodyError(w, err)
 		return
 	}
 	if err := core.ValidateWebhookURL(req.WebhookURL); err != nil {
