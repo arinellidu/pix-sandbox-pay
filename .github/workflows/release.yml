@@ -50,3 +50,54 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Not everyone reaches for Docker. The binary is static and CGO-free, so
+      # every one of these is a single file with nothing to install.
+      - name: cross-compile
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os=${target%/*}; arch=${target#*/}
+            ext=""; [ "$os" = "windows" ] && ext=".exe"
+
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build \
+              -trimpath -ldflags "-s -w -X main.version=$VERSION" \
+              -o "build/pix-sandbox$ext" ./cmd/pix-sandbox
+
+            name="pix-sandbox_${VERSION}_${os}_${arch}"
+            cp README.md LICENSE CHANGELOG.md build/
+            if [ "$os" = "windows" ]; then
+              (cd build && zip -q "../dist/$name.zip" .)
+            else
+              tar -czf "dist/$name.tar.gz" -C build .
+            fi
+            rm -rf build
+          done
+
+          (cd dist && sha256sum * > checksums.txt)
+          ls -lh dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            ```bash
+            docker run -p 8080:8080 ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
+
+            Or take a binary below — static, CGO-free, nothing to install. Verify with `sha256sum -c checksums.txt`.
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for what landed.

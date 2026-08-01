@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pr
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-08-01
+
+### Added
+- Apache-2.0 licence, formalised in `LICENSE` — the adoption path should never be blocked by an undecided licence.
+- Release binaries: a tag now cross-compiles for linux, macOS and Windows on amd64 and arm64, publishes the archives with `checksums.txt` on the GitHub release, and keeps shipping the multi-arch image. The binary is static and CGO-free, so Docker is a convenience rather than a requirement.
+
 ## [0.1.0] — 2026-08-01
 
 First release: the Pix lifecycle runs end to end in one binary. `docker run`, create a charge, pay it, refund it, and your endpoint gets the signed callback — with every transition readable in the embedded console.

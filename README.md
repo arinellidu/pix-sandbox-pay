@@ -3,6 +3,7 @@
 [![ci](https://github.com/arinellidu/pix-sandbox-pay/actions/workflows/ci.yml/badge.svg)](https://github.com/arinellidu/pix-sandbox-pay/actions/workflows/ci.yml)
 [![go](https://img.shields.io/badge/go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![image](https://img.shields.io/badge/ghcr.io-pix--sandbox--pay-2b2b2b?logo=docker&logoColor=white)](https://github.com/arinellidu/pix-sandbox-pay/pkgs/container/pix-sandbox-pay)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 > A drop-in Pix emulator — the full instant-payment lifecycle (charge → EMV QR → payment → refund → webhook) in a single binary. Built for teams integrating with Brazilian PSPs, and for FedNow/SEPA teams studying the world's largest instant-payments deployment.
 
@@ -19,6 +20,8 @@ pix-sandbox is the local environment that argument deserves. It speaks BACEN's p
 ```bash
 docker run -p 8080:8080 ghcr.io/arinellidu/pix-sandbox-pay
 ```
+
+Or grab a binary from the [latest release](https://github.com/arinellidu/pix-sandbox-pay/releases/latest) — static and CGO-free, so there is nothing to install alongside it.
 
 Or straight from source (Go 1.26, no CGO, no external services):
 
@@ -190,6 +193,6 @@ Keep the tape honest: start a real binary with a fresh `-db`, run the same curls
 
 ## License
 
-TBD — Apache-2.0 leaning. This is an adoption tool; the licence should not be the reason someone cannot use it.
+[Apache-2.0](LICENSE). This is an adoption tool; the licence should not be the reason someone cannot use it.
 
 First consumer: [arinelli-pay](https://github.com/arinelliquebec/arinelli-pay), a multi-rail billing SaaS that uses this emulator as its local Pix provider.
