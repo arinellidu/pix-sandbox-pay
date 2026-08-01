@@ -72,21 +72,26 @@ jobs:
             os=${target%/*}; arch=${target#*/}
             ext=""; [ "$os" = "windows" ] && ext=".exe"
 
+            # go build does not create the output's parent directory, and the
+            # loop removes it at the end of every iteration.
+            mkdir -p build
+
             CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build \
               -trimpath -ldflags "-s -w -X main.version=$VERSION" \
               -o "build/pix-sandbox$ext" ./cmd/pix-sandbox
 
+            # One archive format for every target: Windows 10 and later ship
+            # bsdtar, so a .zip would buy nothing and cost a dependency on the
+            # runner having `zip` installed.
             name="pix-sandbox_${VERSION}_${os}_${arch}"
             cp README.md LICENSE CHANGELOG.md build/
-            if [ "$os" = "windows" ]; then
-              (cd build && zip -q "../dist/$name.zip" .)
-            else
-              tar -czf "dist/$name.tar.gz" -C build .
-            fi
+            tar -czf "dist/$name.tar.gz" -C build .
             rm -rf build
           done
 
-          (cd dist && sha256sum * > checksums.txt)
+          # Name the inputs explicitly rather than globbing: checksums.txt is
+          # created by the redirect and must not end up checksumming itself.
+          (cd dist && sha256sum pix-sandbox_* > checksums.txt)
           ls -lh dist
 
       - uses: softprops/action-gh-release@v2
