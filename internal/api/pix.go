@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -113,7 +114,9 @@ func (s *Server) handleSandboxPay(w http.ResponseWriter, r *http.Request) {
 	// The settle is committed; the callback it owes must not die with the
 	// request. A payer disconnecting — or chi's timeout firing — right after
 	// the commit would otherwise drop the delivery without a trace in the log.
-	s.notify(context.WithoutCancel(r.Context()), payment, nil)
+	nctx, cancel := notifyContext(r)
+	defer cancel()
+	s.notify(nctx, payment, nil)
 	writeJSON(w, http.StatusCreated, pixDTO(payment, nil))
 }
 
@@ -208,7 +211,8 @@ func (s *Server) handleCreateDevolucao(w http.ResponseWriter, r *http.Request) {
 
 		// Same decoupling as the pay path: the refund is committed, so the
 		// reload and the callback survive the request that triggered them.
-		ctx := context.WithoutCancel(r.Context())
+		ctx, cancel := notifyContext(r)
+		defer cancel()
 		payment, refunds, err := s.store.PaymentWithRefunds(ctx, e2eID)
 		if err != nil {
 			s.log.Error("reload payment", "e2eid", e2eID, "err", err)
@@ -240,6 +244,17 @@ func (s *Server) loadPayment(w http.ResponseWriter, r *http.Request) (core.Payme
 		return core.Payment{}, nil, false
 	}
 	return payment, refunds, true
+}
+
+// notifyTimeout bounds the store reads that feed a callback: detached from
+// the request they would otherwise wait without any deadline at all.
+const notifyTimeout = 5 * time.Second
+
+// notifyContext detaches post-commit work from the request's cancellation
+// while keeping its values, and bounds it with notifyTimeout so a detached
+// read cannot hold the store's single connection forever.
+func notifyContext(r *http.Request) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(r.Context()), notifyTimeout)
 }
 
 // notify posts the payment to the endpoint registered for its key, if there is
