@@ -1,10 +1,12 @@
 // Package emv builds Pix BR Code payloads: EMV QR Code TLV encoding plus the
 // br.gov.bcb.pix merchant account template and the CRC16 that closes it.
 //
-// The sandbox emits the self-contained flavour: the Pix key travels in 26-01
-// and the txid in 62-05, so a payload resolves without fetching a location
-// document. The strict dynamic flavour (URL in 26-25, "***" in 62-05) needs an
-// endpoint serving the charge, which lands with the console work.
+// The sandbox emits the self-contained flavour: the Pix key travels in 26-01,
+// so a payload resolves without fetching a location document. 62-05 carries
+// the txid only when it fits the field's 25-char cap — a cob txid (26-35
+// chars) never does, so those payloads carry "***" like the dynamic flavour.
+// The strict dynamic flavour (URL in 26-25) needs an endpoint serving the
+// charge, which lands with the console work.
 package emv
 
 import (
@@ -52,6 +54,10 @@ const (
 	maxMerchantCity = 15
 	maxDescription  = 72
 	maxAmount       = 13
+	// maxTxIDRef is the cap on 62-05 (Reference Label): ans..25 in the EMV
+	// MPM spec, kept by BCB's BR Code manual. A cob txid is 26-35 chars by
+	// BACEN's own rule, so it can never travel in the payload.
+	maxTxIDRef = 25
 )
 
 // Defaults used when the caller leaves the merchant identification empty.
@@ -64,8 +70,9 @@ const (
 type BRCode struct {
 	// Key is the Pix key of the payee (26-01). Required.
 	Key string
-	// TxID goes in 62-05. Empty is encoded as "***", which the specification
-	// reads as "no identifier".
+	// TxID goes in 62-05 when it fits the field's 25-char cap. Empty — or too
+	// long, as every cob txid is — is encoded as "***", which the
+	// specification reads as "no identifier".
 	TxID string
 	// Amount is the transaction value formatted with two decimals, e.g.
 	// "10.00" (54). Empty omits the field, letting the payer choose.
@@ -151,7 +158,9 @@ func (b BRCode) merchantAccount() (string, error) {
 
 func (b BRCode) additionalData() (string, error) {
 	txid := b.TxID
-	if txid == "" {
+	// Oversized ids degrade to "***" rather than fail: emitting a payload a
+	// reader rejects on field length would defeat the payload's purpose.
+	if txid == "" || len(txid) > maxTxIDRef {
 		txid = NoTxID
 	}
 	return EncodeAll([]TLV{{ID: SubTxID, Value: txid}})

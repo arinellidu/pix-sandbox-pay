@@ -270,6 +270,24 @@ func TestPayloadStructure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse additional data: %v", err)
 	}
+	// A cob txid (26-35 chars) never fits 62-05's 25-char cap: the payload
+	// must degrade to "***" rather than emit a field readers reject.
+	if got, _ := emv.Find(sub, emv.SubTxID); got != emv.NoTxID {
+		t.Errorf("txid = %q, want %q for a %d-char txid", got, emv.NoTxID, len(txid))
+	}
+}
+
+func TestPayloadShortTxIDTravelsIn6205(t *testing.T) {
+	const txid = "demo123" // static-QR ids up to 25 chars fit the field
+	code := emv.BRCode{Key: "dev@example.com", TxID: txid}
+	payload, err := code.Payload()
+	if err != nil {
+		t.Fatalf("Payload: %v", err)
+	}
+
+	fields, _ := emv.Parse(payload)
+	additional, _ := emv.Find(fields, emv.FieldAdditionalData)
+	sub, _ := emv.Parse(additional)
 	if got, _ := emv.Find(sub, emv.SubTxID); got != txid {
 		t.Errorf("txid = %q, want %q", got, txid)
 	}

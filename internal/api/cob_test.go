@@ -174,8 +174,10 @@ func TestCreateCobReturnsValidEMV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse additional data: %v", err)
 	}
-	if txid, _ := emv.Find(sub, emv.SubTxID); txid != body.TxID {
-		t.Errorf("field 62-05 = %q, want the txid %q", txid, body.TxID)
+	// 62-05 caps at 25 chars and a cob txid is 26-35: the payload must carry
+	// "***" instead of a field real readers reject on length.
+	if txid, _ := emv.Find(sub, emv.SubTxID); txid != emv.NoTxID {
+		t.Errorf("field 62-05 = %q, want %q", txid, emv.NoTxID)
 	}
 }
 
