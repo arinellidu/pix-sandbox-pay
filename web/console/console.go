@@ -272,7 +272,9 @@ func (s *Server) rows(ctx context.Context, since string) (RowsView, error) {
 	view := RowsView{Since: since, Poll: pollTrigger}
 	for _, c := range charges {
 		created := c.CreatedAt.UTC()
-		stamp := created.Format(time.RFC3339Nano)
+		// The watermark compares stamps as strings; store.SortableTime is
+		// fixed-width precisely so that comparison is chronological.
+		stamp := created.Format(store.SortableTime)
 		status := string(c.EffectiveStatus(now))
 		view.Charges = append(view.Charges, ChargeRow{
 			TxID:        c.TxID,
