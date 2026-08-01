@@ -108,7 +108,7 @@ func (s *Store) SettleCharge(ctx context.Context, txid, infoPagador string, now 
 		return core.Payment{}, fmt.Errorf("settle charge: %w", err)
 	}
 
-	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventPixReceived, paymentEventPayload(p)); err != nil {
+	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventPixReceived, paymentEventPayload(p), now); err != nil {
 		return core.Payment{}, err
 	}
 	if err := appendEventTx(ctx, tx, ChargeAggregate(txid), EventChargeSettled, map[string]any{
@@ -116,7 +116,7 @@ func (s *Store) SettleCharge(ctx context.Context, txid, infoPagador string, now 
 		"status":       string(core.StatusConcluida),
 		"e2e_id":       e2eID,
 		"amount_cents": p.AmountCents,
-	}); err != nil {
+	}, now); err != nil {
 		return core.Payment{}, err
 	}
 
@@ -188,7 +188,7 @@ func (s *Store) CreateRefund(ctx context.Context, e2eID, id string, amountCents 
 	); err != nil {
 		return core.Refund{}, false, fmt.Errorf("insert refund: %w", err)
 	}
-	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventRefundRequested, refundEventPayload(refund)); err != nil {
+	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventRefundRequested, refundEventPayload(refund), now); err != nil {
 		return core.Refund{}, false, err
 	}
 
@@ -212,7 +212,7 @@ func (s *Store) CreateRefund(ctx context.Context, e2eID, id string, amountCents 
 		return core.Refund{}, false, fmt.Errorf("apply refund to payment: %w", err)
 	}
 
-	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventRefundSettled, refundEventPayload(refund)); err != nil {
+	if err := appendEventTx(ctx, tx, PaymentAggregate(e2eID), EventRefundSettled, refundEventPayload(refund), now); err != nil {
 		return core.Refund{}, false, err
 	}
 

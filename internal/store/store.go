@@ -97,14 +97,17 @@ func (s *Store) AppendEvent(ctx context.Context, aggregate, typ string, payload 
 const insertEventSQL = `INSERT INTO events (aggregate, type, payload, created_at) VALUES (?, ?, ?, ?)`
 
 // appendEventTx logs an event inside a caller's transaction, so a state change
-// and its event commit together or not at all (INV-3).
-func appendEventTx(ctx context.Context, tx *sql.Tx, aggregate, typ string, payload any) error {
+// and its event commit together or not at all (INV-3). The row is stamped with
+// the caller's now — the same injectable clock that stamped the payload —
+// so freezing or advancing the clock never leaves an event contradicting its
+// own content.
+func appendEventTx(ctx context.Context, tx *sql.Tx, aggregate, typ string, payload any, now time.Time) error {
 	raw, err := marshalPayload(payload)
 	if err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, insertEventSQL,
-		aggregate, typ, raw, formatTime(time.Now())); err != nil {
+		aggregate, typ, raw, formatTime(now)); err != nil {
 		return fmt.Errorf("append event %s: %w", typ, err)
 	}
 	return nil

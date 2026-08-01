@@ -67,7 +67,7 @@ func (s *Store) CreateCharge(ctx context.Context, c core.Charge) (charge core.Ch
 		return core.Charge{}, false, fmt.Errorf("insert charge: %w", err)
 	}
 
-	if err := appendEventTx(ctx, tx, ChargeAggregate(c.TxID), EventChargeCreated, chargeEventPayload(c)); err != nil {
+	if err := appendEventTx(ctx, tx, ChargeAggregate(c.TxID), EventChargeCreated, chargeEventPayload(c), c.CreatedAt); err != nil {
 		return core.Charge{}, false, err
 	}
 
@@ -113,7 +113,7 @@ func (s *Store) ExpireCharge(ctx context.Context, txid string, now time.Time) (c
 		"txid":        txid,
 		"expires_at":  formatTime(charge.ExpiresAt),
 		"observed_at": formatTime(now),
-	}); err != nil {
+	}, now); err != nil {
 		return core.Charge{}, err
 	}
 

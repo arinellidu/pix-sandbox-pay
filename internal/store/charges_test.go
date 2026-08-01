@@ -107,6 +107,36 @@ func TestListChargesOrdersSameSecondFractions(t *testing.T) {
 	}
 }
 
+// Event rows are stamped by the caller's injectable clock, not the host's:
+// under a frozen or advanced clock the row must agree with its own payload.
+func TestEventStampsUseCallersClock(t *testing.T) {
+	st := newStore(t)
+	ctx := context.Background()
+	created := time.Date(2026, 7, 31, 12, 0, 0, 0, time.UTC)
+
+	if _, _, err := st.CreateCharge(ctx, sampleCharge(sampleTxID, created)); err != nil {
+		t.Fatalf("CreateCharge: %v", err)
+	}
+	observed := created.Add(2 * time.Hour) // past the sample's 1h window
+	if _, err := st.ExpireCharge(ctx, sampleTxID, observed); err != nil {
+		t.Fatalf("ExpireCharge: %v", err)
+	}
+
+	events, err := st.EventsByAggregate(ctx, store.ChargeAggregate(sampleTxID))
+	if err != nil {
+		t.Fatalf("EventsByAggregate: %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("events = %d, want 2", len(events))
+	}
+	if !events[0].CreatedAt.Equal(created) {
+		t.Errorf("cob.created stamped %s, want the charge's %s", events[0].CreatedAt, created)
+	}
+	if !events[1].CreatedAt.Equal(observed) {
+		t.Errorf("cob.expired stamped %s, want the observed %s", events[1].CreatedAt, observed)
+	}
+}
+
 func TestCreateChargeWithoutDevedor(t *testing.T) {
 	st := newStore(t)
 	ctx := context.Background()

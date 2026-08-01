@@ -56,7 +56,7 @@ func (s *Store) PutWebhook(ctx context.Context, chave, rawURL string, now time.T
 		"chave":       chave,
 		"webhook_url": rawURL,
 		"created":     created,
-	}); err != nil {
+	}, now); err != nil {
 		return core.Webhook{}, false, err
 	}
 
