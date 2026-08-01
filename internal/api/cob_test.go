@@ -428,6 +428,11 @@ func TestCreateCobValidation(t *testing.T) {
 			body:         `{"devedor":{"cpf":"12345678909","cnpj":"12345678000199","nome":"Fulano"},"valor":{"original":"10.00"},"chave":"dev@example.com"}`,
 			wantProperty: "devedor",
 		},
+		{
+			name:         "devedor without document",
+			body:         `{"devedor":{"nome":"Fulano"},"valor":{"original":"10.00"},"chave":"dev@example.com"}`,
+			wantProperty: "devedor",
+		},
 	}
 
 	for _, tt := range tests {

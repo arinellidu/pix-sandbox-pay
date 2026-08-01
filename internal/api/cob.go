@@ -241,6 +241,13 @@ func parseDevedor(req cobRequest) (*core.Devedor, []violacao) {
 	d := req.Devedor
 
 	switch {
+	case d.CPF == "" && d.CNPJ == "":
+		// BACEN's Devedor schema requires a document whenever the payer is
+		// named: PessoaFisica carries cpf+nome, PessoaJuridica cnpj+nome.
+		violacoes = append(violacoes, violacao{
+			Razao:       "devedor must carry a cpf or a cnpj",
+			Propriedade: "devedor",
+		})
 	case d.CPF != "" && d.CNPJ != "":
 		violacoes = append(violacoes, violacao{
 			Razao:       "devedor must carry either cpf or cnpj, not both",
